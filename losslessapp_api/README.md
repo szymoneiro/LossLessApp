@@ -1,0 +1,2 @@
+# REST API
+If you want to make API to work you need to create <b>secret_key.txt</b> file and put it inside this folder. File should contain secret key, for example 32 byte long generated hash. See this [example](https://docs.python.org/3/library/secrets.html#generating-tokens).
