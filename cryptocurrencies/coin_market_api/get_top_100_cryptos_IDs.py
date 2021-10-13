@@ -47,9 +47,9 @@ if __name__ == "__main__":
         response = session.get(url, params=parameters)
         data = json.loads(response.text)
 
-        # Get path, where we want to save our top 100 cryptocurrencies file.
+        # Set path where we want to save our top 100 cryptocurrencies file.
         top_100_file_path = move_backwards(
-            current_location) + '\data_files' + '\\top_100_cryptocurrencies_IDs.txt'
+            current_location) + '\example_files' + '\\top_100_cryptocurrencies_IDs.txt'
         with open(top_100_file_path, 'w') as text:
             text.write(str(data))
         text.close()
