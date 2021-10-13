@@ -7,7 +7,6 @@ API = "http://127.0.0.1:5000"
 endpoint = "/cryptocurrencies"
 
 if __name__ == "__main__":
-    #os.system('cls')
 
     current_dir = os.path.abspath(__file__)
     cryptos_file = os.path.abspath(os.path.join(current_dir, '../../example_files/top_100_cryptocurrencies_IDs.txt'))
