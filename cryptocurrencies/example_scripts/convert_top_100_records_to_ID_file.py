@@ -2,8 +2,7 @@ import os
 import json
 
 if __name__ == "__main__":
-    os.system('cls')
-
+    
     current_dir = os.path.abspath(__file__)
     top_100_cryptos = os.path.abspath(os.path.join(current_dir, '../../example_files/top_100_cryptocurrencies_IDs.txt'))
     f = open(top_100_cryptos, 'r')
