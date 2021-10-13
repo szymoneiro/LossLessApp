@@ -1,4 +1,4 @@
 # CoinMarketCap API
-
-1. [get_top_100_cryptocurrencies_IDs.py](get_top_100_cryptocurrencies_IDs.py) - script which saves top 100 cryptocurrencies based on ther cmc_rank.
-   
+## SCRIPTS
+1. [get_top_100_cryptocurrencies_IDs.py](get_top_100_cryptocurrencies_IDs.py) - script which saves top 100 cryptocurrencies based on ther cmc_rank. <br>
+<b><ins>IMPORTANT NOTE</b></ins>: In fact this script should be runned at the first, because based on its ranking file, later on I created a database containing exactly those 100 cryptocurrencies. When you will run this script, it's more than likely to have different ranking than in [this example file](../data_files/top_100_cryptocurrencies_IDs.txt). It is just a nature of cryptocurrencies which tend to change quickly at every possible way. I've decided to stay at same 100 cryptocurrencies once I've runned this, because I planned to add history of cryptocurrencies which is currently in <b>TO-DO</b> phase.
