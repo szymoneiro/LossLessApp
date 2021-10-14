@@ -17,6 +17,7 @@ MainWidget::MainWidget(QWidget *parent): QWidget(parent)
 void MainWidget::window_set_up()
 {
     this->setFixedSize(window_width, window_height);
+    this->setWindowFlags(Qt::Window | Qt::FramelessWindowHint  | Qt::CustomizeWindowHint);
 }
 
 void MainWidget::layout_set_up()
@@ -25,4 +26,16 @@ void MainWidget::layout_set_up()
     main_layout = new QHBoxLayout(this);
     main_layout->setSpacing(0);
     main_layout->setContentsMargins(0,0,0,0);
+}
+
+void MainWidget::mousePressEvent(QMouseEvent *evt)
+{
+    oldPos = evt->globalPosition();
+}
+
+void MainWidget::mouseMoveEvent(QMouseEvent *evt)
+{
+    const QPointF delta = evt->globalPosition() - oldPos;
+    move(x()+delta.x(), y()+delta.y());
+    oldPos = evt->globalPosition();
 }
