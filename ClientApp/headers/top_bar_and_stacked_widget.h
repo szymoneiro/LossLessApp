@@ -2,6 +2,7 @@
 #define TOP_BAR_AND_STACKED_WIDGET_H
 
 #include <QtWidgets>
+#include <QNetworkAccessManager>
 
 class TopBarAndStackedWidget : public QWidget
 {
@@ -10,6 +11,8 @@ public:
     explicit TopBarAndStackedWidget(QWidget *parent = nullptr);
 private slots:
     void on_exit_button_clicked();
+    void on_click_get();
+    void managerFinished(QNetworkReply *reply);
 private:
     QString icons_path = "C:\\Users\\szymo\\Desktop\\Stock market application\\Qt\\LossLessAppV2\\";
     QStringList icons_names = {
@@ -34,6 +37,10 @@ private:
 
     /* Buttons SETTINGS/USER/EXIT */
     QPushButton *top_bar_buttons[3];
+
+    /* Backend connection components */
+    QNetworkAccessManager *manager;
+    QNetworkReply *reply;
 
 };
 

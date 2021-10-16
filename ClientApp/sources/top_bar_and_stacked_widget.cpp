@@ -1,4 +1,5 @@
 #include "../headers/top_bar_and_stacked_widget.h"
+#include <QNetworkReply>
 
 TopBarAndStackedWidget::TopBarAndStackedWidget(QWidget *parent) : QWidget(parent)
 {
@@ -39,15 +40,38 @@ TopBarAndStackedWidget::TopBarAndStackedWidget(QWidget *parent) : QWidget(parent
 
     /* Connect function to button */
     connect(top_bar_buttons[2], SIGNAL(clicked()), SLOT(on_exit_button_clicked()));
+    connect(top_bar_buttons[0], SIGNAL(clicked()), SLOT(on_click_get()));
 
     right_widget_layout->addWidget(top_bar_widget);
     right_widget_layout->addWidget(stacked_widget);
 
     for (int i = 0; i < 3; ++i)
         top_bar_layout->addWidget(top_bar_buttons[i]);
+
+    // Initialize network manager
+    manager = new QNetworkAccessManager(this);
+    connect(manager, SIGNAL(finished(QNetworkReply*)),
+            this, SLOT(managerFinished(QNetworkReply*)));
 }
 
 void TopBarAndStackedWidget::on_exit_button_clicked()
 {
     QApplication::quit();
+}
+
+void TopBarAndStackedWidget::on_click_get()
+{
+    QNetworkRequest request;
+    request.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies/1"));
+    manager->get(request);
+}
+
+void TopBarAndStackedWidget::managerFinished(QNetworkReply *reply)
+{
+    if (reply->error()) {
+        qDebug() << reply->errorString();
+        return;
+    }
+
+    stacked_widget->setText(reply->readAll());
 }
