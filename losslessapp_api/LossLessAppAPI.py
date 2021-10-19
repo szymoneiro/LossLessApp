@@ -8,7 +8,6 @@ import jwt
 import datetime
 from functools import wraps
 
-# Obtain SECRET_KEY
 key_path = os.path.abspath(os.path.join(os.path.abspath(__file__), '..' + '/secret_key.txt'))
 try:
     f = open(key_path, 'r')
@@ -28,7 +27,6 @@ def index():
     return render_template('index.html')
 
 db = SQLAlchemy(app)
-db.create_all()
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -41,7 +39,6 @@ class User(db.Model):
     def __repr__(self):
         return f"Public_id: {User.public_id}, username: {User.username}, balance: {User.balance}, is admin: {User.admin}"
 
-# Create single cryptocurrency model in database
 class CryptoModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -50,7 +47,7 @@ class CryptoModel(db.Model):
     def __repr__(self):
         return f"ID: {CryptoModel.id}, name: {CryptoModel.name}, value: {CryptoModel.value}"
 
-# Consider using refreshing-token to prevent user from ending longer sessions than 0.5 h
+db.create_all()
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -60,27 +57,27 @@ def token_required(f):
             token = request.headers['x-access-token']
 
         if not token:
-            return {"message": "Missing authorization token!"}, 401
+            abort(401, message="Missing authorization token! Please Sing In or Sign Up!")
         
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
             current_user = User.query.filter_by(public_id=data['public_id']).first()
         except:
-            return {"message": "Token is invalid!"}, 401
+            abort(401, message="Token is invalid!")
         
         return f(current_user, *args, **kwargs)
     return decorated
 
 # Create request parser for user sign up
 signup_post_args = reqparse.RequestParser()
-signup_post_args.add_argument("username", type=str, required=True)
-signup_post_args.add_argument("password", type=str, required=True)
-signup_post_args.add_argument("balance", type=float, required=True)
+signup_post_args.add_argument("username", type=str)
+signup_post_args.add_argument("password", type=str)
+signup_post_args.add_argument("balance", type=float)
 
 # Create request parser for user sign in
 signin_post_args = reqparse.RequestParser()
-signin_post_args.add_argument("username", type=str, required=True)
-signin_post_args.add_argument("password", type=str, required=True)
+signin_post_args.add_argument("username", type=str)
+signin_post_args.add_argument("password", type=str)
 
 # Create post arguments, where all fields are required
 crypto_post_args = reqparse.RequestParser()
@@ -92,15 +89,6 @@ crypto_patch_args = reqparse.RequestParser()
 crypto_patch_args.add_argument("name", type=str)
 crypto_patch_args.add_argument("value", type=float)
 
-serializing_fields_user = {
-    'id': fields.Integer,
-    'public_id': fields.String,
-    'username': fields.String,
-    'password': fields.String,
-    'balance': fields.Float,
-    'admin': fields.Boolean
-}
-
 serializing_fields_crypto = {
     'id': fields.Integer,
     'name': fields.String,
@@ -108,31 +96,30 @@ serializing_fields_crypto = {
 }
 
 class SignUp(Resource):
-    # Just for debugging purpose, delete on production!
-    ## Get list of all the users in database
     @token_required
-    #@marshal_with(serializing_fields_user)
     def get(current_user, self):
+        if not current_user:
+            abort(404, message="No user found!")
         if not current_user.admin:
-            return {"messsage": "Access denied!"}, 401
+            abort(401, message="Access denied!")
         users = User.query.all()
-        if not users:
-            abort(404, message="There are no users in database!")
-        
-        output = []
 
+        output = []
         for user in users:
             single_user = {}
+            single_user['id'] = user.id
             single_user['public_id'] = user.public_id
             single_user['username'] = user.username
             single_user['password'] = user.password
             single_user['balance'] = user.balance
             single_user['admin'] = user.admin
             output.append(single_user)
-        return jsonify({'users' : output})
+        return jsonify(output)
 
     def post(self):
         args = signup_post_args.parse_args()
+        if not args or not args['username'] or not args['password'] or not args['balance']:
+            abort(400, message="Missing one or more fields!")
         result = User.query.filter_by(username=args['username']).first()
         if result:
             abort(409, message="Username is already taken!")
@@ -146,7 +133,6 @@ class SignUp(Resource):
             admin=False)
         db.session.add(new_user)
         db.session.commit()
-
         return {"message": "Succesully added new user."}, 201
 
 
@@ -159,19 +145,20 @@ class SignIn(Resource):
         user = User.query.filter_by(username=args['username']).first()
 
         if not user:
-            abort(401, 'Wrong username or password or user does not exist!')
+            abort(401, message="Wrong username/password or user does not exist!")
         
         if check_password_hash(user.password, args['password']):
             token = jwt.encode({'public_id': user.public_id, 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=30)},app.config['SECRET_KEY'],algorithm="HS256")
             return {"token": token}, 200
         
-        abort(401, message="Wrong password!")
+        # We get there only when password is wrong, but for safety issues we cannot say that to an user, so we display same result as when wrong username.
+        abort(401, message="Wrong username or password user does not exist!")
 
 class Cryptocurrency(Resource):
     # GET result by id
     @token_required
     @marshal_with(serializing_fields_crypto)
-    def get(self, crypto_id, current_user):
+    def get(current_user, self, crypto_id):
         result = CryptoModel.query.filter_by(id=crypto_id).first()
         if not result:
             abort(404, message="Crypto with that ID doesn't exist!")
@@ -179,7 +166,9 @@ class Cryptocurrency(Resource):
     
     @token_required
     @marshal_with(serializing_fields_crypto)
-    def post(self, crypto_id, current_user):
+    def post(current_user, self, crypto_id):
+        if not current_user.admin:
+            abort(401, message="Access denied!")
         args = crypto_post_args.parse_args()
         result = CryptoModel.query.filter_by(id=crypto_id).first()
         if result:
@@ -192,7 +181,9 @@ class Cryptocurrency(Resource):
     @token_required
     # Attach token with no expiration date to updating script!
     @marshal_with(serializing_fields_crypto)
-    def patch(self, crypto_id, current_user):
+    def patch(current_user, self, crypto_id):
+        if not current_user.admin:
+            abort(401, message="Access denied!")
         args = crypto_patch_args.parse_args()
         result = CryptoModel.query.filter_by(id=crypto_id).first()
         if not result:
@@ -207,7 +198,9 @@ class Cryptocurrency(Resource):
         return result, 200
 
     @token_required
-    def delete(self, crypto_id, current_user):
+    def delete(current_user, self, crypto_id):
+        if not current_user.admin:
+            abort(401, message="Access denied!")
         result = CryptoModel.query.filter_by(id=crypto_id).first()
         if not result:
             abort(404, message="Crypto with that ID doesn't exist!")
@@ -219,7 +212,7 @@ class Cryptocurrencies(Resource):
     # GET all the cryptocurrencies
     @token_required
     @marshal_with(serializing_fields_crypto)
-    def get(self, current_user):
+    def get(current_user, self):
         result = CryptoModel.query.all()
         if not result:
             abort(404, message="There are no cryptocurrencies in the database!")
@@ -228,7 +221,9 @@ class Cryptocurrencies(Resource):
     # DELETE whole table
     # IMPLEMENTED JUST FOR TESTING, REMOVE ON PRODUCTION!
     @token_required
-    def delete(self, current_user):
+    def delete(current_user, self):
+        if not current_user.admin:
+            abort(401, message="Access denied!")
         result = CryptoModel.query.all()
         if not result:
             abort(404, message="There are no cryptocurrencies in the database!")
