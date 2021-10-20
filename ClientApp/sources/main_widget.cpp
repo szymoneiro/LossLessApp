@@ -4,38 +4,37 @@
     another widgets - sidebar, topbar, stackedWidget, logo widget etc. */
 MainWidget::MainWidget(QWidget *parent): QWidget(parent)
 {
-    window_set_up();
-    layout_set_up();
+    windowSetUp();
+    layoutSetUp();
 
-    left_widget = new LogoAndSideBarWidget(this);
-    main_layout->addWidget(left_widget);
+    leftWidget = new LogoAndSideBarWidget(this);
+    mainLayout->addWidget(leftWidget);
 
-    right_widget = new TopBarAndStackedWidget(this);
-    main_layout->addWidget(right_widget);
+    rightWidget = new TopBarAndStackedWidget(this);
+    mainLayout->addWidget(rightWidget);
 }
 
-void MainWidget::window_set_up()
+void MainWidget::windowSetUp()
 {
     this->setFixedSize(window_width, window_height);
     this->setWindowFlags(Qt::Window | Qt::FramelessWindowHint  | Qt::CustomizeWindowHint);
 }
 
-void MainWidget::layout_set_up()
+void MainWidget::layoutSetUp()
 {
-    /* Create layout */
-    main_layout = new QHBoxLayout(this);
-    main_layout->setSpacing(0);
-    main_layout->setContentsMargins(0,0,0,0);
+    mainLayout = new QHBoxLayout(this);
+    mainLayout->setSpacing(0);
+    mainLayout->setContentsMargins(0,0,0,0);
 }
 
-void MainWidget::mousePressEvent(QMouseEvent *evt)
+void MainWidget::mousePressEvent(QMouseEvent *event)
 {
-    oldPos = evt->globalPosition();
+    oldPos = event->globalPosition();
 }
 
-void MainWidget::mouseMoveEvent(QMouseEvent *evt)
+void MainWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    const QPointF delta = evt->globalPosition() - oldPos;
+    const QPointF delta = event->globalPosition() - oldPos;
     move(x()+delta.x(), y()+delta.y());
-    oldPos = evt->globalPosition();
+    oldPos = event->globalPosition();
 }

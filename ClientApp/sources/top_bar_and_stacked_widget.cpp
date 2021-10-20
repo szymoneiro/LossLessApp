@@ -3,66 +3,37 @@
 
 TopBarAndStackedWidget::TopBarAndStackedWidget(QWidget *parent) : QWidget(parent)
 {
-    /* Create top bar widget */
-    top_bar_widget = new QWidget(this);
-    top_bar_widget->setStyleSheet("background-color: #FFFFFF");
+    createLayouts();
+    createStackedWidget();
+    createButtons();
 
-    /* Create layouts */
-    right_widget_layout = new QVBoxLayout(this);
-    right_widget_layout->setSpacing(0);
-    right_widget_layout->setContentsMargins(0, 0, 0, 0);
+    /* Connect functions to buttons */
+    connect(topBarButtons[2], SIGNAL(clicked()), SLOT(onExitButtonClicked()));
+    connect(topBarButtons[0], SIGNAL(clicked()), SLOT(onClickGet()));
 
-    top_bar_layout = new QHBoxLayout(top_bar_widget);
-    top_bar_layout->setSpacing(26);
-    top_bar_layout->setContentsMargins(954, 12, 26, 12);
-
-
-    /* Stacked widget section */
-    stacked_widget = new QLabel(this);
-    stacked_widget->setText("STACKED_WIDGET");
-    stacked_widget->setStyleSheet("background-color: #FAFAFA;"
-                                  "color: black;"
-                                  "font: bold");
-    stacked_widget->setAlignment(Qt::AlignCenter);
-    stacked_widget->setFixedSize(1200, 640);
-    right_widget_layout->addWidget(stacked_widget);
-
-    /* Buttons */
-    for (int i = 0; i < 3; ++i) {
-        top_bar_buttons[i] = new QPushButton(top_bar_widget);
-        top_bar_buttons[i]->setFixedSize(button_size, button_size);
-        top_bar_buttons[i]->setStyleSheet("background-color:" + buttons_colors[i] + ";"
-                                          "border-radius: 15px");
-        QString icon_path = icons_path + icons_names[i];
-        top_bar_buttons[i]->setIcon(QIcon(icon_path));
-        top_bar_buttons[i]->setIconSize(QSize(icon_size, icon_size));
-    }
-
-    /* Connect function to button */
-    connect(top_bar_buttons[2], SIGNAL(clicked()), SLOT(on_exit_button_clicked()));
-    connect(top_bar_buttons[0], SIGNAL(clicked()), SLOT(on_click_get()));
-
-    right_widget_layout->addWidget(top_bar_widget);
-    right_widget_layout->addWidget(stacked_widget);
+    /* Add widgets to layouts */
+    rightWidgetLayout->addWidget(topBarWidget);
+    rightWidgetLayout->addWidget(stackedWidget);
 
     for (int i = 0; i < 3; ++i)
-        top_bar_layout->addWidget(top_bar_buttons[i]);
+        topBarLayout->addWidget(topBarButtons[i]);
 
-    // Initialize network manager
+    /* Initialize network manager */
     manager = new QNetworkAccessManager(this);
     connect(manager, SIGNAL(finished(QNetworkReply*)),
             this, SLOT(managerFinished(QNetworkReply*)));
 }
 
-void TopBarAndStackedWidget::on_exit_button_clicked()
+void TopBarAndStackedWidget::onExitButtonClicked()
 {
     QApplication::quit();
 }
 
-void TopBarAndStackedWidget::on_click_get()
+void TopBarAndStackedWidget::onClickGet()
 {
     QNetworkRequest request;
-    request.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies/1"));
+    request.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies"));
+    request.setRawHeader("x-access-token", "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwdWJsaWNfaWQiOiJiZTFjNDQ0My0zNGRlLTRiMTQtODc3Zi02NDBiMDFmNTU1YmMiLCJleHAiOjE2MzQ2NDU0MDZ9.KHU1AzzSQBokSoty9K7BP_8YdcMh-F38iPVCqQtEm_Y");
     manager->get(request);
 }
 
@@ -73,5 +44,45 @@ void TopBarAndStackedWidget::managerFinished(QNetworkReply *reply)
         return;
     }
 
-    stacked_widget->setText(reply->readAll());
+    qDebug() << reply->readAll();
+}
+
+void TopBarAndStackedWidget::createLayouts()
+{
+    rightWidgetLayout = new QVBoxLayout(this);
+    rightWidgetLayout->setSpacing(0);
+    rightWidgetLayout->setContentsMargins(0, 0, 0, 0);
+
+    /* Create top bar widget to make it topBarLayouts' parent */
+    topBarWidget = new QWidget(this);
+    topBarWidget->setStyleSheet("background-color: #FFFFFF");
+
+    topBarLayout = new QHBoxLayout(topBarWidget);
+    topBarLayout->setSpacing(26);
+    topBarLayout->setContentsMargins(954, 12, 26, 12);
+}
+
+void TopBarAndStackedWidget::createStackedWidget()
+{
+    stackedWidget = new QStackedWidget(this);
+    stackedWidget->setFixedSize(1200, 640);
+    stackedWidget->setStyleSheet("background-color: #FAFAFA");
+
+    /* Initialize all widgets pinned to stacked widget and connect them to it. */
+    signUpPage = new SignUpWidget(stackedWidget);
+    stackedWidget->addWidget(signUpPage);
+}
+
+void TopBarAndStackedWidget::createButtons()
+{
+    iconsDir.setPath("../ClientApp/icons");
+    for (int i = 0; i < 3; ++i) {
+        topBarButtons[i] = new QPushButton(topBarWidget);
+        topBarButtons[i]->setFixedSize(button_size, button_size);
+        topBarButtons[i]->setStyleSheet("background-color:" + buttonColours[i] + ";"
+                                          "border-radius: 15px");
+        QString icon_path = iconsDir.absolutePath() + "/" + iconsNames[i];
+        topBarButtons[i]->setIcon(QIcon(icon_path));
+        topBarButtons[i]->setIconSize(QSize(icon_size, icon_size));
+    }
 }

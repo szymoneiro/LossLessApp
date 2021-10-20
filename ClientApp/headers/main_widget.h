@@ -13,23 +13,23 @@ public:
 private:
     enum { window_width = 1280, window_height = 720 };
 
-    // Layout
-    QHBoxLayout *main_layout;
+    /* Layout */
+    QHBoxLayout *mainLayout;
 
-    // Left-side and right-side widgets
-    LogoAndSideBarWidget *left_widget;
-    TopBarAndStackedWidget *right_widget;
+    /* Left-side and right-side widgets */
+    LogoAndSideBarWidget *leftWidget;
+    TopBarAndStackedWidget *rightWidget;
 
-    // Move borderless window
+    /* Move borderless window */
     QPointF oldPos;
 
-    // Set window size and create main_layout object
-    void window_set_up();
-    void layout_set_up();
+    /* Set window size and create main_layout object */
+    void windowSetUp();
+    void layoutSetUp();
 
-    // TRY?
-    void mousePressEvent(QMouseEvent *evt);
-    void mouseMoveEvent(QMouseEvent *evt);
+    /* Moving application functions */
+    void mousePressEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
 
 };
 #endif // MAIN_WIDGET_H

@@ -9,12 +9,12 @@ class MainBodyStackedWidget : public QStackedWidget
 public:
     explicit MainBodyStackedWidget(QWidget *parent = nullptr);
 private:
-    QWidget *home_widget;
-    QWidget *stats_widget;
-    QWidget *buy_widget;
-    QWidget *sell_widget;
-    QWidget *settings_widget;
-    QWidget *profile_widget;
+    QWidget *HomeWidget;
+    QWidget *StatsWidget;
+    QWidget *BuyWidget;
+    QWidget *SellWidget;
+    QWidget *SettingsWidget;
+    QWidget *ProfileWidget;
 
 };
 

@@ -3,6 +3,7 @@
 
 #include <QtWidgets>
 #include <QNetworkAccessManager>
+#include "signup_widget.h"
 
 class TopBarAndStackedWidget : public QWidget
 {
@@ -10,17 +11,17 @@ class TopBarAndStackedWidget : public QWidget
 public:
     explicit TopBarAndStackedWidget(QWidget *parent = nullptr);
 private slots:
-    void on_exit_button_clicked();
-    void on_click_get();
+    void onExitButtonClicked();
+    void onClickGet();
     void managerFinished(QNetworkReply *reply);
 private:
-    QString icons_path = "C:\\Users\\szymo\\Desktop\\Stock market application\\Qt\\LossLessAppV2\\";
-    QStringList icons_names = {
+    QDir iconsDir;
+    QStringList iconsNames = {
         "settings_icon.png",
         "profile_icon.png",
         "exit_icon.png"
     };
-    QStringList buttons_colors = {
+    QStringList buttonColours = {
         "#4C3099",
         "#00FFA3",
         "#FF004C"
@@ -28,19 +29,26 @@ private:
     enum { button_size = 56, icon_size = 30 };
 
     /* Layouts */
-    QVBoxLayout *right_widget_layout;
-    QHBoxLayout *top_bar_layout;
+    QVBoxLayout *rightWidgetLayout;
+    QHBoxLayout *topBarLayout;
 
-    /* Widgets */
-    QWidget *top_bar_widget;
-    QLabel *stacked_widget;
+    /* Top bar with 3 buttons and application body */
+    QWidget *topBarWidget;
+    QStackedWidget *stackedWidget;
+
+    /* stackedWidget's widgets */
+    SignUpWidget *signUpPage;
 
     /* Buttons SETTINGS/USER/EXIT */
-    QPushButton *top_bar_buttons[3];
+    QPushButton *topBarButtons[3];
 
     /* Backend connection components */
     QNetworkAccessManager *manager;
     QNetworkReply *reply;
+
+    void createLayouts();
+    void createStackedWidget();
+    void createButtons();
 
 };
 

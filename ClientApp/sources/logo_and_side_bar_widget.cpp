@@ -2,56 +2,59 @@
 
 LogoAndSideBarWidget::LogoAndSideBarWidget(QWidget *parent) : QWidget(parent)
 {
-    create_side_bar();
-    layout_set_up();
-    create_logo_bar();
-    create_buttons();
+    createSideBar();
+    createLayouts();
+    createLogoBar();
+    createButtons();
 
-    left_widget_layout->addWidget(logo_bar_label);
-    left_widget_layout->addWidget(side_bar_widget);
+    leftWidgetLayout->addWidget(logoBarLayout);
+    leftWidgetLayout->addWidget(sideBarWidget);
 
-    side_bar_widget->setLayout(side_bar_layout);
+    sideBarWidget->setLayout(sideBarLayout);
     for (int i = 0; i < 4; ++i)
-        side_bar_layout->addWidget(side_bar_buttons[i]);
+        sideBarLayout->addWidget(sideBarButtons[i]);
 }
 
-void LogoAndSideBarWidget::layout_set_up()
+void LogoAndSideBarWidget::createLayouts()
 {
-    left_widget_layout = new QVBoxLayout(this);
-    left_widget_layout->setSpacing(0);
-    left_widget_layout->setContentsMargins(0, 0, 0, 0);
+    leftWidgetLayout = new QVBoxLayout(this);
+    leftWidgetLayout->setSpacing(0);
+    leftWidgetLayout->setContentsMargins(0, 0, 0, 0);
 
-    side_bar_layout = new QVBoxLayout(side_bar_widget);
-    side_bar_layout->setSpacing(8);
-    side_bar_layout->setContentsMargins(12, 16, 12, 376);
+    sideBarLayout = new QVBoxLayout(sideBarWidget);
+    sideBarLayout->setSpacing(8);
+    sideBarLayout->setContentsMargins(12, 16, 12, 376);
 }
 
-void LogoAndSideBarWidget::create_logo_bar()
+void LogoAndSideBarWidget::createLogoBar()
 {
-    logo_bar_label = new QLabel(this);
-    logo_bar_label->setText("LOGO");
-    logo_bar_label->setStyleSheet("background-color: #00FFA3;"
+    logoBarLayout = new QLabel(this);
+    logoBarLayout->setText("LOGO");
+    logoBarLayout->setStyleSheet("background-color: #00FFA3;"
                             "color: #FFFFFF;"
                             "font: bold;");
-    logo_bar_label->setAlignment(Qt::AlignCenter);
-    logo_bar_label->setFixedSize(80, 80);
+    logoBarLayout->setAlignment(Qt::AlignCenter);
+    logoBarLayout->setFixedSize(80, 80);
 }
 
-void LogoAndSideBarWidget::create_side_bar()
+void LogoAndSideBarWidget::createSideBar()
 {
-    side_bar_widget = new QWidget(this);
-    side_bar_widget->setStyleSheet("background-color: #4C3099");
+    sideBarWidget = new QWidget(this);
+    sideBarWidget->setStyleSheet("background-color: #4C3099");
 }
 
-void LogoAndSideBarWidget::create_buttons()
+void LogoAndSideBarWidget::createButtons()
 {
+    /* Set path to button icons */
+    iconsDir.setPath("../ClientApp/icons");
+
     for (int i = 0; i < 4; ++i) {
-        side_bar_buttons[i] = new QPushButton(side_bar_widget);
-        side_bar_buttons[i]->setFixedSize(button_size, button_size);
-        side_bar_buttons[i]->setStyleSheet("background-color: white;"
+        sideBarButtons[i] = new QPushButton(sideBarWidget);
+        sideBarButtons[i]->setFixedSize(button_size, button_size);
+        sideBarButtons[i]->setStyleSheet("background-color: white;"
                                   "border-radius: 15px");
-        QString icon_path = icons_path + icons_names[i];
-        side_bar_buttons[i]->setIcon(QIcon(icon_path));
-        side_bar_buttons[i]->setIconSize(QSize(icon_size, icon_size));
+        QString icon_path = iconsDir.absolutePath() + "/" + iconsNames[i];
+        sideBarButtons[i]->setIcon(QIcon(icon_path));
+        sideBarButtons[i]->setIconSize(QSize(icon_size, icon_size));
     }
 }

@@ -7,8 +7,8 @@
 # Databases
 /losslessapp_api/cryptocurrencies.db
 
-# ClientApp Build
-build-ClientApp-Desktop_Qt_6_0_1_MinGW_64_bit-Debug
+# ClientApp Builds
+build-ClientApp*
 
 # Qt
 *~

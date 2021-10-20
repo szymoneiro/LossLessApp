@@ -9,8 +9,8 @@ class LogoAndSideBarWidget : public QWidget
 public:
     explicit LogoAndSideBarWidget(QWidget *parent = nullptr);
 private:
-    QString icons_path = "C:\\Users\\szymo\\Desktop\\Stock market application\\Qt\\LossLessAppV2\\";
-    QStringList icons_names = {
+    QDir iconsDir;
+    QStringList iconsNames = {
         "home_icon.png",
         "stats_icon.png",
         "buy_icon.png",
@@ -18,22 +18,20 @@ private:
     };
     enum { button_size = 56, icon_size = 32 };
 
-    /* Widgets layouts */
-    QVBoxLayout *left_widget_layout;
-    QVBoxLayout *side_bar_layout;
+    QVBoxLayout *leftWidgetLayout;
+    QVBoxLayout *sideBarLayout;
 
-    /* Widgets */
-    QLabel *logo_bar_label;
-    QWidget *side_bar_widget;
+    QLabel *logoBarLayout;
+    QWidget *sideBarWidget;
 
-    /* Buttons HOME/STATS/BUY/SELL */
-    QPushButton *side_bar_buttons[4];
+    /* HOME/STATS/BUY/SELL */
+    QPushButton *sideBarButtons[4];
 
     /* Functions */
-    void layout_set_up();
-    void create_logo_bar();
-    void create_side_bar();
-    void create_buttons();
+    void createLayouts();
+    void createLogoBar();
+    void createSideBar();
+    void createButtons();
 
 };
 
