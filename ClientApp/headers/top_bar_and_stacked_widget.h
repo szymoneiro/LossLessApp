@@ -3,7 +3,8 @@
 
 #include <QtWidgets>
 #include <QNetworkAccessManager>
-#include "signup_widget.h"
+#include "sign_up_widget.h"
+#include "sign_in_widget.h"
 
 class TopBarAndStackedWidget : public QWidget
 {
@@ -14,6 +15,8 @@ private slots:
     void onExitButtonClicked();
     void onClickGet();
     void managerFinished(QNetworkReply *reply);
+    void setSignUpPage();
+    void setSignInPage();
 private:
     QDir iconsDir;
     QStringList iconsNames = {
@@ -37,6 +40,7 @@ private:
     QStackedWidget *stackedWidget;
 
     /* stackedWidget's widgets */
+    SignInWidget *signInPage;
     SignUpWidget *signUpPage;
 
     /* Buttons SETTINGS/USER/EXIT */

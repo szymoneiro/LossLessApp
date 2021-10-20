@@ -1,5 +1,5 @@
-#ifndef SIGNUP_WIDGET_H
-#define SIGNUP_WIDGET_H
+#ifndef SIGN_UP_WIDGET_H
+#define SIGN_UP_WIDGET_H
 
 #include <QtWidgets>
 
@@ -8,6 +8,9 @@ class SignUpWidget : public QWidget
     Q_OBJECT
 public:
     explicit SignUpWidget(QWidget *parent = nullptr);
+
+signals:
+    void signInClicked();
 private:
     QVBoxLayout *widgetLayout;
 
@@ -30,6 +33,9 @@ private:
     void signUpCreate();
     void fieldsCreate();
     void buttonsCreate();
+
+private slots:
+    void onSignInButtonClicked();
 };
 
-#endif // SIGNUP_WIDGET_H
+#endif // SIGN_UP_WIDGET_H

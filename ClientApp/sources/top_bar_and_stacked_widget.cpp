@@ -47,6 +47,16 @@ void TopBarAndStackedWidget::managerFinished(QNetworkReply *reply)
     qDebug() << reply->readAll();
 }
 
+void TopBarAndStackedWidget::setSignUpPage()
+{
+    stackedWidget->setCurrentIndex(1);
+}
+
+void TopBarAndStackedWidget::setSignInPage()
+{
+    stackedWidget->setCurrentIndex(0);
+}
+
 void TopBarAndStackedWidget::createLayouts()
 {
     rightWidgetLayout = new QVBoxLayout(this);
@@ -69,8 +79,15 @@ void TopBarAndStackedWidget::createStackedWidget()
     stackedWidget->setStyleSheet("background-color: #FAFAFA");
 
     /* Initialize all widgets pinned to stacked widget and connect them to it. */
+    signInPage = new SignInWidget(stackedWidget);
     signUpPage = new SignUpWidget(stackedWidget);
+    stackedWidget->addWidget(signInPage);
     stackedWidget->addWidget(signUpPage);
+
+    connect(signInPage, SIGNAL(signUpClicked()), SLOT(setSignUpPage()));
+    connect(signUpPage, SIGNAL(signInClicked()), SLOT(setSignInPage()));
+
+    stackedWidget->setCurrentIndex(0);
 }
 
 void TopBarAndStackedWidget::createButtons()

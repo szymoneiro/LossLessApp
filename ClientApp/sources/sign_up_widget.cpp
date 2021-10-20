@@ -1,4 +1,4 @@
-#include "../headers/signup_widget.h"
+#include "../headers/sign_up_widget.h"
 
 SignUpWidget::SignUpWidget(QWidget *parent) : QWidget(parent)
 {
@@ -18,6 +18,11 @@ SignUpWidget::SignUpWidget(QWidget *parent) : QWidget(parent)
 
     for (int i = 0; i < 3; ++i)
         signUpLayout->addWidget(userInputFields[i]);
+}
+
+void SignUpWidget::onSignInButtonClicked()
+{
+    emit signInClicked();
 }
 
 void SignUpWidget::layoutCreate()
@@ -113,5 +118,9 @@ void SignUpWidget::buttonsCreate()
     /* 0.1 * 255 ~ 26 */
     shadow->setColor(QColor(0,0,0,26));
     shadow->setOffset(4, 4);
+
+    signInButton->setGraphicsEffect(shadow);
     signUpButton->setGraphicsEffect(shadow);
+
+    connect(signInButton, SIGNAL(clicked()), SLOT(onSignInButtonClicked()));
 }
