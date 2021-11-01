@@ -11,12 +11,15 @@ class TopBarAndStackedWidget : public QWidget
     Q_OBJECT
 public:
     explicit TopBarAndStackedWidget(QWidget *parent = nullptr);
+    QString x_access_token = "EXAMPLE-TOKEN-XDDDDDDD-DASDAS-!@#$%^&*()";
+
 private slots:
     void onExitButtonClicked();
-    void onClickGet();
     void managerFinished(QNetworkReply *reply);
     void setSignUpPage();
     void setSignInPage();
+    void setMainPage();
+
 private:
     QDir iconsDir;
     QStringList iconsNames = {
@@ -42,13 +45,15 @@ private:
     /* stackedWidget's widgets */
     SignInWidget *signInPage;
     SignUpWidget *signUpPage;
+    QWidget *homePage;
+    // JUST FOR TEST, REMOVE THIS LATER
+    QLabel *homePageLabel;
 
     /* Buttons SETTINGS/USER/EXIT */
     QPushButton *topBarButtons[3];
 
     /* Backend connection components */
     QNetworkAccessManager *manager;
-    QNetworkReply *reply;
 
     void createLayouts();
     void createStackedWidget();

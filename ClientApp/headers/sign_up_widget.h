@@ -2,6 +2,7 @@
 #define SIGN_UP_WIDGET_H
 
 #include <QtWidgets>
+#include <QNetworkAccessManager>
 
 class SignUpWidget : public QWidget
 {
@@ -22,20 +23,30 @@ private:
     QPushButton *signUpButton;
     QStringList fieldsTexts = {"USERNAME", "PASSWORD", "STARTING BALANCE[$]"};
 
-    /* Lower are of widget */
+    /* Lower area of widget */
     QWidget *signInWidget;
     QLabel *alreadyText;
+    QLabel *errorLabel;
     QPushButton *signInButton;
+    QPushButton *showPasswordButton;
 
+    /* API connection components */
+    QNetworkAccessManager *networkManager;
+    QNetworkReply *reply;
 
     void layoutCreate();
     void signInCreate();
     void signUpCreate();
     void fieldsCreate();
     void buttonsCreate();
+    void updateErrorLabel(QString message, bool error);
 
 private slots:
     void onSignInButtonClicked();
+    void onSignUpButtonClicked();
+    void signUpFinished(QNetworkReply *reply);
+    void showPassword();
+    void hidePassword();
 };
 
 #endif // SIGN_UP_WIDGET_H

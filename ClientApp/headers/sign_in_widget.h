@@ -2,6 +2,7 @@
 #define SIGN_IN_WIDGET_H
 
 #include <QtWidgets>
+#include <QNetworkAccessManager>
 
 class SignInWidget : public QWidget
 {
@@ -11,6 +12,7 @@ public:
 
 signals:
     void signUpClicked();
+    void userLoggedIn();
 
 private:
     QVBoxLayout *widgetLayout;
@@ -27,6 +29,12 @@ private:
     QWidget *signInWidget;
     QLabel *alreadyText;
     QPushButton *signInButton;
+    QLabel *errorLabel;
+    QPushButton *showPasswordButton;
+
+    /* API connection components */
+    QNetworkAccessManager *networkManager;
+    QNetworkReply *reply;
 
 
     void layoutCreate();
@@ -34,9 +42,14 @@ private:
     void signInCreate();
     void fieldsCreate();
     void buttonsCreate();
+    void updateErrorLabel(QString message, bool error);
 
 private slots:
-        void onSignUpButtonClicked();
+    void onSignInButtonClicked();
+    void onSignUpButtonClicked();
+    void signInFinished(QNetworkReply *reply);
+    void showPassword();
+    void hidePassword();
 };
 
 #endif // SIGN_IN_WIDGET_H

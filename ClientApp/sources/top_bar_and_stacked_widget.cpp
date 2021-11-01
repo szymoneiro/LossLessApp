@@ -9,7 +9,6 @@ TopBarAndStackedWidget::TopBarAndStackedWidget(QWidget *parent) : QWidget(parent
 
     /* Connect functions to buttons */
     connect(topBarButtons[2], SIGNAL(clicked()), SLOT(onExitButtonClicked()));
-    connect(topBarButtons[0], SIGNAL(clicked()), SLOT(onClickGet()));
 
     /* Add widgets to layouts */
     rightWidgetLayout->addWidget(topBarWidget);
@@ -22,29 +21,32 @@ TopBarAndStackedWidget::TopBarAndStackedWidget(QWidget *parent) : QWidget(parent
     manager = new QNetworkAccessManager(this);
     connect(manager, SIGNAL(finished(QNetworkReply*)),
             this, SLOT(managerFinished(QNetworkReply*)));
+
+    /*  Main body logic
+        Move to Sign Up page on signUpClicked signal    */
+    connect(signInPage, SIGNAL(signUpClicked()), SLOT(setSignUpPage()));
+    connect(signUpPage, SIGNAL(signInClicked()), SLOT(setSignInPage()));
+    connect(signInPage, SIGNAL(userLoggedIn()), SLOT(setMainPage()));
+
+    stackedWidget->setCurrentIndex(0);
 }
 
 void TopBarAndStackedWidget::onExitButtonClicked()
 {
+
     QApplication::quit();
 }
 
-void TopBarAndStackedWidget::onClickGet()
-{
-    QNetworkRequest request;
-    request.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies"));
-    request.setRawHeader("x-access-token", "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJwdWJsaWNfaWQiOiJiZTFjNDQ0My0zNGRlLTRiMTQtODc3Zi02NDBiMDFmNTU1YmMiLCJleHAiOjE2MzQ2NDU0MDZ9.KHU1AzzSQBokSoty9K7BP_8YdcMh-F38iPVCqQtEm_Y");
-    manager->get(request);
-}
-
+/* Work around errors! */
 void TopBarAndStackedWidget::managerFinished(QNetworkReply *reply)
 {
     if (reply->error()) {
         qDebug() << reply->errorString();
+        qDebug() << reply->error();
         return;
     }
 
-    qDebug() << reply->readAll();
+    homePageLabel->setText(reply->readAll());
 }
 
 void TopBarAndStackedWidget::setSignUpPage()
@@ -55,6 +57,15 @@ void TopBarAndStackedWidget::setSignUpPage()
 void TopBarAndStackedWidget::setSignInPage()
 {
     stackedWidget->setCurrentIndex(0);
+}
+
+void TopBarAndStackedWidget::setMainPage()
+{
+    stackedWidget->setCurrentIndex(2);
+    QNetworkRequest request;
+    request.setUrl(QUrl("http://127.0.0.1:5000/register"));
+    request.setRawHeader("x-access-token", x_access_token.toUtf8());
+    manager->get(request);
 }
 
 void TopBarAndStackedWidget::createLayouts()
@@ -81,13 +92,17 @@ void TopBarAndStackedWidget::createStackedWidget()
     /* Initialize all widgets pinned to stacked widget and connect them to it. */
     signInPage = new SignInWidget(stackedWidget);
     signUpPage = new SignUpWidget(stackedWidget);
+    homePage = new QWidget(stackedWidget);
+    homePage->setStyleSheet("background-color: #00FFA3");
+    homePage->setFixedSize(1200, 640);
+    homePageLabel = new QLabel(homePage);
+    homePageLabel->setGeometry(100, 100, 1100, 540);
+//    homePageLabel->setStyleSheet("background-color: #4C3099,"
+//                                 "color: #FFFFFF");
+
     stackedWidget->addWidget(signInPage);
     stackedWidget->addWidget(signUpPage);
-
-    connect(signInPage, SIGNAL(signUpClicked()), SLOT(setSignUpPage()));
-    connect(signUpPage, SIGNAL(signInClicked()), SLOT(setSignInPage()));
-
-    stackedWidget->setCurrentIndex(0);
+    stackedWidget->addWidget(homePage);
 }
 
 void TopBarAndStackedWidget::createButtons()

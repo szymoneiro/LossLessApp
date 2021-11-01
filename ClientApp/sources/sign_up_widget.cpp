@@ -1,4 +1,6 @@
 #include "../headers/sign_up_widget.h"
+#include <QNetworkReply>
+#include <QJsonDocument>
 
 SignUpWidget::SignUpWidget(QWidget *parent) : QWidget(parent)
 {
@@ -13,16 +15,121 @@ SignUpWidget::SignUpWidget(QWidget *parent) : QWidget(parent)
     fieldsCreate();
     buttonsCreate();
 
+    connect(signUpButton, SIGNAL(clicked()), SLOT(onSignUpButtonClicked()));
+    connect(signInButton, SIGNAL(clicked()), SLOT(onSignInButtonClicked()));
+    connect(showPasswordButton, SIGNAL(pressed()), SLOT(showPassword()));
+    connect(showPasswordButton, SIGNAL(released()), SLOT(hidePassword()));
+
     /* Add them to layout */
     widgetLayout->addWidget(signUpWidget);
 
     for (int i = 0; i < 3; ++i)
         signUpLayout->addWidget(userInputFields[i]);
+
+    networkManager = new QNetworkAccessManager(this);
+    connect(networkManager, SIGNAL(finished(QNetworkReply*)),
+            SLOT(signUpFinished(QNetworkReply*)));
 }
 
 void SignUpWidget::onSignInButtonClicked()
 {
     emit signInClicked();
+    for (int i = 0; i < 3; ++i)
+        userInputFields[i]->clear();
+    errorLabel->setVisible(false);
+}
+
+void SignUpWidget::onSignUpButtonClicked()
+{
+    if (userInputFields[0]->text().isEmpty() ||
+        userInputFields[1]->text().isEmpty() ||
+        userInputFields[2]->text().isEmpty()) {
+
+        updateErrorLabel("Missing one or more fields!", true);
+        /* Hide error message after 3 seconds */
+        QTimer::singleShot(3000, this, [this]{
+            errorLabel->setVisible(false);
+        });
+        errorLabel->setVisible(true);
+    }
+    else {
+        /* Password requirements:
+         * 8-16 characters long
+         * minimum 1 number
+         * minimun 1 uppercase letter */
+        QString password = userInputFields[1]->text();
+        QRegularExpression re("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{8,}$");
+        QRegularExpressionMatch match = re.match(password);
+        if (match.hasMatch() == false) {
+            QTimer::singleShot(3000, this, [this]{
+                errorLabel->setVisible(false);
+                errorLabel->setGeometry(300, 558, 600, 56);
+            });
+            updateErrorLabel("Password must contain 8-16 characters, 1 uppercase and 1 number!", true);
+            errorLabel->setGeometry(250, 558, 700, 56);
+            errorLabel->setVisible(true);
+            return;
+        }
+
+        updateErrorLabel("Processing...", false);
+        errorLabel->setVisible(true);
+
+        QNetworkRequest registerRequest;
+        registerRequest.setUrl(QUrl("http://127.0.0.1:5000/register"));
+        registerRequest.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/x-www-form-urlencoded"));
+
+        QUrlQuery query;
+        query.addQueryItem("username", userInputFields[0]->text());
+        query.addQueryItem("password", userInputFields[1]->text());
+        query.addQueryItem("balance", userInputFields[2]->text());
+
+        QByteArray postData;
+        postData = query.toString(QUrl::FullyEncoded).toUtf8();
+
+        networkManager->post(registerRequest, postData);
+    }
+}
+
+void SignUpWidget::signUpFinished(QNetworkReply *reply)
+{
+    if (reply->error()) {
+        QTimer::singleShot(5000, this, [this]{
+            errorLabel->setVisible(false);
+        });
+        if (reply->error() == QNetworkReply::ContentConflictError) {
+            updateErrorLabel("Username is already taken! Try another!", true);
+        }
+        else {
+            updateErrorLabel("Server error! Try again later!", true);
+        }
+    }
+    else {
+        QTimer::singleShot(3000, this, [this]{
+            errorLabel->setVisible(false);
+            onSignInButtonClicked();
+        });
+        updateErrorLabel("Success! Redirecting...", false);
+    }
+}
+
+void SignUpWidget::showPassword()
+{
+    userInputFields[1]->setEchoMode(QLineEdit::Normal);
+    QDir iconsDir;
+    iconsDir.setPath("../ClientApp/icons");
+    QString icon_path = iconsDir.absolutePath() + "/" + "hide_icon.png";
+    showPasswordButton->setIcon(QIcon(icon_path));
+    showPasswordButton->setIconSize(QSize(32, 32));
+}
+
+void SignUpWidget::hidePassword()
+{
+    userInputFields[1]->setEchoMode(QLineEdit::Password);
+    QDir iconsDir;
+    iconsDir.setPath("../ClientApp/icons");
+    QString icon_path = iconsDir.absolutePath() + "/" + "show_icon.png";
+    showPasswordButton->setIcon(QIcon(icon_path));
+    showPasswordButton->setIconSize(QSize(32, 32));
 }
 
 void SignUpWidget::layoutCreate()
@@ -70,15 +177,19 @@ void SignUpWidget::fieldsCreate()
     for (int i = 0; i < 3; ++i){
         userInputFields[i] = new QLineEdit(this);
         userInputFields[i]->setFixedSize(400, 56);
-        userInputFields[i]->setStyleSheet("background-color: #FFFFFF;"
-                                          "border-radius: 28px;"
-                                          "border: 2px solid #000000;"
-                                          "font: 20px");
+        QString inputStyleSheet = "QLineEdit {"
+                                  "background-color: #FFFFFF;"
+                                  "border-radius: 28px;"
+                                  "border: 2px solid #000000;"
+                                  "font: 20px;}"
+                                  "QLineEdit:focus {"
+                                  "background-color: #B0B0B0;}";
+        userInputFields[i]->setStyleSheet(inputStyleSheet);
         userInputFields[i]->setTextMargins(25, 0, 0, 0);
         userInputFields[i]->setMaxLength(18);
     }
     userInputFields[1]->setEchoMode(QLineEdit::Password);
-    userInputFields[2]->setInputMask("999999999999999999");
+    userInputFields[2]->setValidator(new QIntValidator(0, INT_MAX, userInputFields[2]));
 
     /* Info texts */
     for (int i = 0; i < 3; ++i){
@@ -92,25 +203,39 @@ void SignUpWidget::fieldsCreate()
     textHelpers[0]->setGeometry(429, 117, 79, 17);
     textHelpers[1]->setGeometry(429, 201, 79, 17);
     textHelpers[2]->setGeometry(429, 285, 146, 17);
+
+    errorLabel = new QLabel(this);
+    errorLabel->setAlignment(Qt::AlignCenter);
+    errorLabel->setGeometry(300, 558, 600, 56);
+    errorLabel->setVisible(false);
 }
 
 void SignUpWidget::buttonsCreate()
 {
     signInButton = new QPushButton("SIGN IN", this);
-    signInButton->setStyleSheet("background-color: #00FFA3;"
-                                "border-radius: 15px;"
-                                "border: 2px solid #000000;"
-                                "font: bold;"
-                                "color: #000000");
     signInButton->setGeometry(677, 481, 151, 43);
+    QString signInStylesheet = "QPushButton {"
+                               "background-color: #00FFA3;"
+                               "border-radius: 15px;"
+                               "border: 2px solid #000000;"
+                               "font: bold;"
+                               "color: #000000;}"
+                               "QPushButton:pressed {"
+                               "background-color: #00BD79;}";
+    signInButton->setStyleSheet(signInStylesheet);
+
 
     signUpButton = new QPushButton("SIGN UP", this);
     signUpButton->setFixedSize(200, 56);
-    signUpButton->setStyleSheet("background-color: #4C3099;"
+    QString signUpStyleSheet = "QPushButton {"
+                                "background-color: #4C3099;"
                                 "border-radius: 28px;"
                                 "border: 2px solid #000000;"
                                 "font: bold;"
-                                "color: #FFFFFF");
+                                "color: #FFFFFF;}"
+                                "QPushButton:pressed {"
+                                "background-color: #332066;}";
+    signUpButton->setStyleSheet(signUpStyleSheet);
     signUpButton->setGeometry(500, 391, 200, 56);
 
     QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(signUpButton);
@@ -122,5 +247,33 @@ void SignUpWidget::buttonsCreate()
     signInButton->setGraphicsEffect(shadow);
     signUpButton->setGraphicsEffect(shadow);
 
-    connect(signInButton, SIGNAL(clicked()), SLOT(onSignInButtonClicked()));
+    showPasswordButton = new QPushButton(this);
+    QDir iconsDir;
+    iconsDir.setPath("../ClientApp/icons");
+    QString icon_path = iconsDir.absolutePath() + "/" + "show_icon.png";
+    showPasswordButton->setIcon(QIcon(icon_path));
+    showPasswordButton->setIconSize(QSize(32, 32));
+    showPasswordButton->setStyleSheet("background: transparent");
+    showPasswordButton->setGeometry(744, 235, 32, 32);
+}
+
+void SignUpWidget::updateErrorLabel(QString message, bool error)
+{
+    errorLabel->setText(message);
+    if (error) {
+        errorLabel->setStyleSheet("background-color: #FF0000;"
+                                  "font: bold;"
+                                  "color: #FFFFFF;"
+                                  "font-size: 20px;"
+                                  "border: 2px solid #000000;"
+                                  "border-radius: 10px");
+    }
+    else {
+        errorLabel->setStyleSheet("background-color: #00FFA3;"
+                                  "font: bold;"
+                                  "color: #FFFFFF;"
+                                  "font-size: 20px;"
+                                  "border: 2px solid #000000;"
+                                  "border-radius: 10px");
+    }
 }
