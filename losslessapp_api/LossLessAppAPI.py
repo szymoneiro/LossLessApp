@@ -3,12 +3,14 @@ from flask import Flask, render_template, request, jsonify
 from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with
 from flask_sqlalchemy import SQLAlchemy
 import uuid
+from sqlalchemy.orm import backref
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import datetime
 from functools import wraps
+import datetime
 
-key_path = os.path.abspath(os.path.join(os.path.abspath(__file__), '..' + '/secret_key.txt'))
+key_path = os.path.abspath(os.path.join(os.path.abspath(__file__), '../secret_key.txt'))
 try:
     f = open(key_path, 'r')
 except FileNotFoundError:
@@ -28,7 +30,7 @@ def index():
 
 db = SQLAlchemy(app)
 
-class User(db.Model):
+class Users(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(50), unique=True)
     username = db.Column(db.String(50))
@@ -36,16 +38,32 @@ class User(db.Model):
     balance = db.Column(db.Float)
     admin = db.Column(db.Boolean)
 
+    parent_user_id = db.relationship('CryptoRecord', backref='users', lazy=True)
+
     def __repr__(self):
-        return f"Public_id: {User.public_id}, username: {User.username}, balance: {User.balance}, is admin: {User.admin}"
+        return f"Public_id: {Users.public_id}, username: {Users.username}, balance: {Users.balance}, is admin: {Users.admin}"
 
 class CryptoModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     value = db.Column(db.Float, nullable=False)
+    
+    parent_crypto_id = db.relationship('CryptoRecord', backref='crypto_model', lazy=True)
 
     def __repr__(self):
         return f"ID: {CryptoModel.id}, name: {CryptoModel.name}, value: {CryptoModel.value}"
+
+class CryptoRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(50), db.ForeignKey('users.public_id'), nullable=False)
+    crypto_id = db.Column(db.Integer, db.ForeignKey('crypto_model.id'), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    buy_price = db.Column(db.Float, nullable=False)
+    buy_date = db.Column(db.String(50), nullable=False)
+
+    def __repr__(self):
+        return f"Public_id: {CryptoRecord.public_id}, crypto_id: {CryptoRecord.crypto_id}, quantity: {CryptoRecord.quantity}, price: {CryptoRecord.buy_price}, date: {CryptoRecord.buy_date}"
+
 
 db.create_all()
 def token_required(f):
@@ -61,7 +79,7 @@ def token_required(f):
         
         try:
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-            current_user = User.query.filter_by(public_id=data['public_id']).first()
+            current_user = Users.query.filter_by(public_id=data['public_id']).first()
         except:
             abort(401, message="Token is invalid!")
         
@@ -89,6 +107,13 @@ crypto_patch_args = reqparse.RequestParser()
 crypto_patch_args.add_argument("name", type=str)
 crypto_patch_args.add_argument("value", type=float)
 
+
+crypto_buy_args = reqparse.RequestParser()
+crypto_buy_args.add_argument("public_id", type=str)
+crypto_buy_args.add_argument("crypto_id", type=int)
+crypto_buy_args.add_argument("quantity", type=float)
+crypto_buy_args.add_argument("buy_price", type=float)
+
 serializing_fields_crypto = {
     'id': fields.Integer,
     'name': fields.String,
@@ -102,7 +127,7 @@ class SignUp(Resource):
             abort(404, message="No user found!")
         if not current_user.admin:
             abort(401, message="Access denied!")
-        users = User.query.all()
+        users = Users.query.all()
 
         output = []
         for user in users:
@@ -120,12 +145,12 @@ class SignUp(Resource):
         args = signup_post_args.parse_args()
         if not args or not args['username'] or not args['password'] or not args['balance']:
             abort(400, message="Missing one or more fields!")
-        result = User.query.filter_by(username=args['username']).first()
+        result = Users.query.filter_by(username=args['username']).first()
         if result:
             abort(409, message="Username is already taken!")
         hashed_password = generate_password_hash(args['password'], method='sha256')
 
-        new_user = User(
+        new_user = Users(
             public_id=str(uuid.uuid4()), 
             username=args['username'], 
             password=hashed_password,
@@ -142,7 +167,7 @@ class SignIn(Resource):
         if not args['username'] or not args['password']:
             abort(401, message="Missing username or login!")
         
-        user = User.query.filter_by(username=args['username']).first()
+        user = Users.query.filter_by(username=args['username']).first()
 
         if not user:
             abort(401, message="Wrong username/password or user does not exist!")
@@ -232,14 +257,77 @@ class Cryptocurrencies(Resource):
         return {"message": "Succesfully cleared database."}, 200
 
 
+class BoughtCryptos(Resource):
+    def get(self, public_id):
+        user_records = CryptoRecord.query.filter_by(public_id=public_id).all()
+        output = []
+        for record in user_records:
+            single_record = {}
+            single_record["id"] = record.id
+            single_record["public_id"] = record.public_id
+            single_record["crypto_id"] = record.crypto_id
+            single_record["quantity"] = record.quantity
+            single_record["buy_price"] = record.buy_price
+            single_record["buy_date"] = record.buy_date
+            output.append(single_record)
+        return jsonify(output)
+
+class BuyCryptos(Resource):
+    def get(self):
+        crypto_records = CryptoRecord.query.all()
+        output = []
+        for record in crypto_records:
+            single_record = {}
+            single_record["id"] = record.id
+            single_record["public_id"] = record.public_id
+            single_record["crypto_id"] = record.crypto_id
+            single_record["quantity"] = record.quantity
+            single_record["buy_price"] = record.buy_price
+            single_record["buy_date"] = record.buy_date
+            output.append(single_record)
+        return jsonify(output)
+
+    def post(self):
+        args = crypto_buy_args.parse_args()
+        if not args["public_id"]:
+            abort(400, message="Missing public id!")
+        if not args["crypto_id"]:
+            abort(400, message="Missing crypto id!")
+        if not args["quantity"]:
+            abort(400, message="Missing quantity!")
+        if not args["buy_price"]:
+            abort(400, message="Missing buy price!")
+        
+        now = datetime.datetime.now()
+        buyRecord = CryptoRecord(
+            public_id = args["public_id"],
+            crypto_id = args["crypto_id"],
+            quantity  = args["quantity"],
+            buy_price = args["buy_price"],
+            buy_date = now.strftime("%d.%m.%Y %H:%M:%S")
+        )
+        db.session.add(buyRecord)
+        db.session.commit()
+        return {"message": "Succesfully added new crypto buy record!"}, 201
+
+
 # Endpoint to access single cryptocurrency by ID
 api.add_resource(Cryptocurrency, "/cryptocurrencies/<int:crypto_id>")
+
 # Endpoint for access to all cryptocurrencies
 api.add_resource(Cryptocurrencies, "/cryptocurrencies")
+
 # Endpoint for sign up 
 api.add_resource(SignUp, "/register")
+
 # Endpoint for sing in
 api.add_resource(SignIn, "/login")
+
+# Endpoint for buying cryptocurrencies
+api.add_resource(BuyCryptos, "/buy/cryptocurrencies")
+
+# Endpoint for getting all bought cryptocurrencies for user
+api.add_resource(BoughtCryptos, "/buy/cryptocurrencies/<string:public_id>")
 
 if __name__ == "__main__":
     app.run(debug=True)
