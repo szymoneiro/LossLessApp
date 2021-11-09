@@ -1,6 +1,9 @@
 # CoinMarketApi Key
 /cryptocurrencies/coinmarketapi_key.txt
 
+# FrecurrenciesAPI Key
+/cryptocurrencies/freecurrencyapi_key.txt
+
 # API secret key
 /losslessapp_api/secret_key.txt
 
