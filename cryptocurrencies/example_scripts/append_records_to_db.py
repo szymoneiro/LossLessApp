@@ -30,6 +30,6 @@ if __name__ == "__main__":
                                     "value": 0}
     
     for i in records:
-        response = requests.put(API + endpoint + "/" + str(i),
+        response = requests.post(API + endpoint + "/" + str(i),
                                 {"name": records[i]["name"], "value": records[i]["value"]})
         print(response.json())   
