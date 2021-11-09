@@ -38,7 +38,8 @@ class Users(db.Model):
     balance = db.Column(db.Float)
     admin = db.Column(db.Boolean)
 
-    parent_user_id = db.relationship('CryptoRecord', backref='users', lazy=True)
+    id_crypto = db.relationship('CryptoRecord', backref='users', lazy=True)
+    id_currency = db.relationship('CurrencyRecord', backref='users', lazy=True)
 
     def __repr__(self):
         return f"Public_id: {Users.public_id}, username: {Users.username}, balance: {Users.balance}, is admin: {Users.admin}"
@@ -53,6 +54,16 @@ class CryptoModel(db.Model):
     def __repr__(self):
         return f"ID: {CryptoModel.id}, name: {CryptoModel.name}, value: {CryptoModel.value}"
 
+class CurrencyModel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    value = db.Column(db.Float, nullable=False)
+    
+    parent_currency_id = db.relationship('CurrencyRecord', backref='currency_model', lazy=True)
+
+    def __repr__(self):
+        return f"ID: {CurrencyModel.id}, name: {CurrencyModel.name}, value: {CurrencyModel.value}"
+
 class CryptoRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(50), db.ForeignKey('users.public_id'), nullable=False)
@@ -63,6 +74,17 @@ class CryptoRecord(db.Model):
 
     def __repr__(self):
         return f"Public_id: {CryptoRecord.public_id}, crypto_id: {CryptoRecord.crypto_id}, quantity: {CryptoRecord.quantity}, price: {CryptoRecord.buy_price}, date: {CryptoRecord.buy_date}"
+
+class CurrencyRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(50), db.ForeignKey('users.public_id'), nullable=False)
+    currency_id = db.Column(db.Integer, db.ForeignKey('currency_model.id'), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    buy_price = db.Column(db.Float, nullable=False)
+    buy_date = db.Column(db.String(50), nullable=False)
+
+    def __repr__(self):
+        return f"Public_id: {CurrencyRecord.public_id}, currency_id: {CurrencyRecord.crypto_id}, quantity: {CurrencyRecord.quantity}, price: {CurrencyRecord.buy_price}, date: {CurrencyRecord.buy_date}"
 
 
 db.create_all()
@@ -102,11 +124,14 @@ crypto_post_args = reqparse.RequestParser()
 crypto_post_args.add_argument("name", type=str, required=True)
 crypto_post_args.add_argument("value", type=float, required=True)
 
+currency_put_args = reqparse.RequestParser()
+currency_put_args.add_argument("name", type=str, required=True)
+currency_put_args.add_argument("value", type=float, required=True)
+
 # In patch we can modify any of value, but we need to give an ID of the record
 crypto_patch_args = reqparse.RequestParser()
 crypto_patch_args.add_argument("name", type=str)
 crypto_patch_args.add_argument("value", type=float)
-
 
 crypto_buy_args = reqparse.RequestParser()
 crypto_buy_args.add_argument("public_id", type=str)
@@ -114,7 +139,13 @@ crypto_buy_args.add_argument("crypto_id", type=int)
 crypto_buy_args.add_argument("quantity", type=float)
 crypto_buy_args.add_argument("buy_price", type=float)
 
-serializing_fields_crypto = {
+currency_buy_args = reqparse.RequestParser()
+currency_buy_args.add_argument("public_id", type=str)
+currency_buy_args.add_argument("currency_id", type=int)
+currency_buy_args.add_argument("quantity", type=float)
+currency_buy_args.add_argument("buy_price", type=float)
+
+serialize_fields = {
     'id': fields.Integer,
     'name': fields.String,
     'value': fields.Float
@@ -182,7 +213,7 @@ class SignIn(Resource):
 class Cryptocurrency(Resource):
     # GET result by id
     @token_required
-    @marshal_with(serializing_fields_crypto)
+    @marshal_with(serialize_fields)
     def get(current_user, self, crypto_id):
         result = CryptoModel.query.filter_by(id=crypto_id).first()
         if not result:
@@ -190,7 +221,7 @@ class Cryptocurrency(Resource):
         return result
     
     @token_required
-    @marshal_with(serializing_fields_crypto)
+    @marshal_with(serialize_fields)
     def post(current_user, self, crypto_id):
         if not current_user.admin:
             abort(401, message="Access denied!")
@@ -204,8 +235,7 @@ class Cryptocurrency(Resource):
         return crypto, 201
 
     @token_required
-    # Attach token with no expiration date to updating script!
-    @marshal_with(serializing_fields_crypto)
+    @marshal_with(serialize_fields)
     def patch(current_user, self, crypto_id):
         if not current_user.admin:
             abort(401, message="Access denied!")
@@ -236,43 +266,16 @@ class Cryptocurrency(Resource):
 class Cryptocurrencies(Resource):
     # GET all the cryptocurrencies
     @token_required
-    @marshal_with(serializing_fields_crypto)
+    @marshal_with(serialize_fields)
     def get(current_user, self):
         result = CryptoModel.query.all()
         if not result:
             abort(404, message="There are no cryptocurrencies in the database!")
         return result
-    
-    # DELETE whole table
-    # IMPLEMENTED JUST FOR TESTING, REMOVE ON PRODUCTION!
-    @token_required
-    def delete(current_user, self):
-        if not current_user.admin:
-            abort(401, message="Access denied!")
-        result = CryptoModel.query.all()
-        if not result:
-            abort(404, message="There are no cryptocurrencies in the database!")
-        CryptoModel.query.delete()
-        db.session.commit()
-        return {"message": "Succesfully cleared database."}, 200
-
-
-class BoughtCryptos(Resource):
-    def get(self, public_id):
-        user_records = CryptoRecord.query.filter_by(public_id=public_id).all()
-        output = []
-        for record in user_records:
-            single_record = {}
-            single_record["id"] = record.id
-            single_record["public_id"] = record.public_id
-            single_record["crypto_id"] = record.crypto_id
-            single_record["quantity"] = record.quantity
-            single_record["buy_price"] = record.buy_price
-            single_record["buy_date"] = record.buy_date
-            output.append(single_record)
-        return jsonify(output)
 
 class BuyCryptos(Resource):
+    # Get buy records
+    # JUST FOR TESTING PURPOSES, REMOVE ON PRODUCTION!
     def get(self):
         crypto_records = CryptoRecord.query.all()
         output = []
@@ -310,12 +313,146 @@ class BuyCryptos(Resource):
         db.session.commit()
         return {"message": "Succesfully added new crypto buy record!"}, 201
 
+class BoughtCryptos(Resource):
+    def get(self, public_id):
+        user_records = CryptoRecord.query.filter_by(public_id=public_id).all()
+        output = []
+        for record in user_records:
+            single_record = {}
+            single_record["id"] = record.id
+            single_record["public_id"] = record.public_id
+            single_record["crypto_id"] = record.crypto_id
+            single_record["quantity"] = record.quantity
+            single_record["buy_price"] = record.buy_price
+            single_record["buy_date"] = record.buy_date
+            output.append(single_record)
+        return jsonify(output)
 
-# Endpoint to access single cryptocurrency by ID
+class Currency(Resource):
+    # GET by id
+    @token_required
+    @marshal_with(serialize_fields)
+    def get(current_user, self, currency_id):
+        result = CurrencyModel.query.filter_by(id=currency_id).first()
+        if not result:
+            abort(404, message="Currency with that ID doesn't exist!")
+        return result
+    
+    @token_required
+    @marshal_with(serialize_fields)
+    def post(current_user, self, currency_id):
+        if not current_user.admin:
+            abort(401, message="Access denied!")
+        args = currency_put_args.parse_args()
+        result = CurrencyModel.query.filter_by(id=currency_id).first()
+        if result:
+            abort(409, message="Currency ID is already taken!")
+        currency = CurrencyModel(id=currency_id, name=args['name'], value=args['value'])
+        db.session.add(currency)
+        db.session.commit()
+        return currency, 201
+
+    @token_required
+    @marshal_with(serialize_fields)
+    def patch(current_user, self, currency_id):
+        if not current_user.admin:
+            abort(401, message="Access denied!")
+        args = crypto_patch_args.parse_args()
+        result = CurrencyModel.query.filter_by(id=currency_id).first()
+        if not result:
+            abort(404, message="Currency with that ID doesn't exist!")
+        
+        if args['name']:
+            result.name = args['name']
+        if args['value']:
+            result.value = args['value']
+        
+        db.session.commit()
+        return result, 200
+
+    @token_required
+    def delete(current_user, self, currency_id):
+        if not current_user.admin:
+            abort(401, message="Access denied!")
+        result = CurrencyModel.query.filter_by(id=currency_id).first()
+        if not result:
+            abort(404, message="Currency with that ID doesn't exist!")
+        db.session.delete(result)
+        db.session.commit()
+        return {"message": "Succesfully removed record from database."}, 200
+
+class Currencies(Resource):
+    # GET all currencies
+    @token_required
+    @marshal_with(serialize_fields)
+    def get(current_user, self):
+        result = CurrencyModel.query.all()
+        if not result:
+            abort(404, message="There are no currencies in the database!")
+        return result
+
+class BuyCurrency(Resource):
+    # Get buy records
+    # JUST FOR TESTING PURPOSES, REMOVE ON PRODUCTION!
+    def get(self):
+        currency_records = CurrencyRecord.query.all()
+        output = []
+        for record in currency_records:
+            single_record = {}
+            single_record["id"] = record.id
+            single_record["public_id"] = record.public_id
+            single_record["currency_id"] = record.currency_id
+            single_record["quantity"] = record.quantity
+            single_record["buy_price"] = record.buy_price
+            single_record["buy_date"] = record.buy_date
+            output.append(single_record)
+        return jsonify(output)
+
+    def post(self):
+        args = currency_buy_args.parse_args()
+        if not args["public_id"]:
+            abort(400, message="Missing public id!")
+        if not args["currency_id"]:
+            abort(400, message="Missing currency_id id!")
+        if not args["quantity"]:
+            abort(400, message="Missing quantity!")
+        if not args["buy_price"]:
+            abort(400, message="Missing buy price!")
+        
+        now = datetime.datetime.now()
+        buyRecord = CurrencyRecord(
+            public_id = args["public_id"],
+            currency_id = args["currency_id"],
+            quantity  = args["quantity"],
+            buy_price = args["buy_price"],
+            buy_date = now.strftime("%d.%m.%Y %H:%M:%S")
+        )
+        db.session.add(buyRecord)
+        db.session.commit()
+        return {"message": "Succesfully added new currency buy record!"}, 201
+
+class BoughtCurrencies(Resource):
+    def get(self, public_id):
+        user_records = CurrencyRecord.query.filter_by(public_id=public_id).all()
+        output = []
+        for record in user_records:
+            single_record = {}
+            single_record["id"] = record.id
+            single_record["public_id"] = record.public_id
+            single_record["currency_id"] = record.currency_id
+            single_record["quantity"] = record.quantity
+            single_record["buy_price"] = record.buy_price
+            single_record["buy_date"] = record.buy_date
+            output.append(single_record)
+        return jsonify(output)
+
+# Endpoint to access single cryptocurrency/currency by ID
 api.add_resource(Cryptocurrency, "/cryptocurrencies/<int:crypto_id>")
+api.add_resource(Currency, "/currencies/<int:currency_id>")
 
-# Endpoint for access to all cryptocurrencies
+# Endpoint for access to all cryptocurrencies/currencies
 api.add_resource(Cryptocurrencies, "/cryptocurrencies")
+api.add_resource(Currencies, "/currencies")
 
 # Endpoint for sign up 
 api.add_resource(SignUp, "/register")
@@ -323,11 +460,13 @@ api.add_resource(SignUp, "/register")
 # Endpoint for sing in
 api.add_resource(SignIn, "/login")
 
-# Endpoint for buying cryptocurrencies
+# Endpoint for buying cryptocurrencies/currencies
 api.add_resource(BuyCryptos, "/buy/cryptocurrencies")
+api.add_resource(BuyCurrency, "/buy/currencies")
 
-# Endpoint for getting all bought cryptocurrencies for user
+# Endpoint for getting all bought cryptocurrencies/currencies for specific user
 api.add_resource(BoughtCryptos, "/buy/cryptocurrencies/<string:public_id>")
+api.add_resource(BoughtCurrencies, "/buy/currencies/<string:public_id>")
 
 if __name__ == "__main__":
     app.run(debug=True)
