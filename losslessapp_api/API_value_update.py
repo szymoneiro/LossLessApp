@@ -11,8 +11,9 @@ API = "http://127.0.0.1:5000"
 crypto_endpoint = "/cryptocurrencies"
 currency_endpoint = "/currencies"
 
-
-most_popular_currencies = ["EUR", "JPY", "GBP", "AUD", "CAD", "RUB", "CHF", "HKD", "NZD", "PLN"]
+most_popular_currencies = ["EUR", "JPY", "GBP", "AUD", "CAD", "CHF", "CNY", "SEK",
+                           "MXN", "NZD", "SGD", "HKD", "NOK", "KRW", "TRY", "INR",
+                           "RUB", "BRL", "ZAR", "DKK", "PLN", "TWD", "THB", "MYR"]
 
 # Obtain script location
 def get_current_location():
@@ -50,7 +51,7 @@ if __name__ == "__main__":
         print("FreeCurrencyAPI key is missing!")
         exit(-1)
 
-    currency_url = "https://freecurrencyapi.net/api/v2/latest?apikey=" + f.read() + "base_currency=USD"
+    currency_url = "https://freecurrencyapi.net/api/v2/latest?apikey=" + f.read() + "&base_currency=USD"
     f.close()
 
     # Obtain IDs from file
