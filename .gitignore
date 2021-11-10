@@ -11,6 +11,9 @@
 # ClientApp Builds
 build-ClientApp*
 
+#PyCharm
+.idea/
+
 # Qt
 *~
 *.autosave
