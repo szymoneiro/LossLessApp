@@ -59,7 +59,6 @@ void SignInWidget::signInFinished(QNetworkReply *reply)
         });
         updateErrorLabel("Success! Redirecting...", false);
         QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
-        /* TopBarAndStackedWidget -> StackedWidget -> SignInWidget */
         dynamic_cast<TopBarAndStackedWidget*>(parent()->parent())->x_access_token = doc["token"].toString();
         emit userLoggedIn();
     }

@@ -6,6 +6,7 @@ CONFIG += c++11
 
 SOURCES += \
     main.cpp \
+    sources/home_page_widget.cpp \
     sources/logo_and_side_bar_widget.cpp \
     sources/main_body_stacked_widget.cpp \
     sources/main_widget.cpp \
@@ -14,6 +15,7 @@ SOURCES += \
     sources/top_bar_and_stacked_widget.cpp
 
 HEADERS += \
+    headers/home_page_widget.h \
     headers/logo_and_side_bar_widget.h \
     headers/main_body_stacked_widget.h \
     headers/main_widget.h \

@@ -11,7 +11,7 @@ class TopBarAndStackedWidget : public QWidget
     Q_OBJECT
 public:
     explicit TopBarAndStackedWidget(QWidget *parent = nullptr);
-    QString x_access_token = "EXAMPLE-TOKEN-XDDDDDDD-DASDAS-!@#$%^&*()";
+    QString x_access_token = "EXAMPLE-TOKEN-jdksaldkjsalkda";
 
 private slots:
     void onExitButtonClicked();
