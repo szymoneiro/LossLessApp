@@ -8,7 +8,6 @@ SOURCES += \
     main.cpp \
     sources/home_page_widget.cpp \
     sources/logo_and_side_bar_widget.cpp \
-    sources/main_body_stacked_widget.cpp \
     sources/main_widget.cpp \
     sources/sign_in_widget.cpp \
     sources/sign_up_widget.cpp \
@@ -17,7 +16,6 @@ SOURCES += \
 HEADERS += \
     headers/home_page_widget.h \
     headers/logo_and_side_bar_widget.h \
-    headers/main_body_stacked_widget.h \
     headers/main_widget.h \
     headers/sign_in_widget.h \
     headers/sign_up_widget.h \

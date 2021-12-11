@@ -1,4 +1,5 @@
 #include "../headers/sign_up_widget.h"
+#include "../headers/top_bar_and_stacked_widget.h"
 #include <QNetworkReply>
 #include <QJsonDocument>
 
@@ -26,9 +27,7 @@ SignUpWidget::SignUpWidget(QWidget *parent) : QWidget(parent)
     for (int i = 0; i < 3; ++i)
         signUpLayout->addWidget(userInputFields[i]);
 
-    networkManager = new QNetworkAccessManager(this);
-    connect(networkManager, SIGNAL(finished(QNetworkReply*)),
-            SLOT(signUpFinished(QNetworkReply*)));
+    networkManager = qobject_cast<TopBarAndStackedWidget*>(parent)->getNetworkManager();
 }
 
 void SignUpWidget::onSignInButtonClicked()
@@ -86,17 +85,19 @@ void SignUpWidget::onSignUpButtonClicked()
         QByteArray postData;
         postData = query.toString(QUrl::FullyEncoded).toUtf8();
 
-        networkManager->post(registerRequest, postData);
+        signUpReply = this->networkManager->post(registerRequest, postData);
+        connect(signUpReply, &QNetworkReply::finished,
+                this, &SignUpWidget::signUpFinished);
     }
 }
 
-void SignUpWidget::signUpFinished(QNetworkReply *reply)
+void SignUpWidget::signUpFinished()
 {
-    if (reply->error()) {
+    if (signUpReply->error()) {
         QTimer::singleShot(5000, this, [this]{
             errorLabel->setVisible(false);
         });
-        if (reply->error() == QNetworkReply::ContentConflictError) {
+        if (signUpReply->error() == QNetworkReply::ContentConflictError) {
             updateErrorLabel("Username is already taken! Try another!", true);
         }
         else {
@@ -110,6 +111,7 @@ void SignUpWidget::signUpFinished(QNetworkReply *reply)
         });
         updateErrorLabel("Success! Redirecting...", false);
     }
+    signUpReply->deleteLater();
 }
 
 void SignUpWidget::showPassword()

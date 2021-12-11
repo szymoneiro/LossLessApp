@@ -1,6 +1,8 @@
 #include "../headers/top_bar_and_stacked_widget.h"
 #include <QNetworkReply>
 
+Q_GLOBAL_STATIC(QNetworkAccessManager, appNetworkManager)
+
 TopBarAndStackedWidget::TopBarAndStackedWidget(QWidget *parent) : QWidget(parent)
 {
     createLayouts();
@@ -17,36 +19,25 @@ TopBarAndStackedWidget::TopBarAndStackedWidget(QWidget *parent) : QWidget(parent
     for (int i = 0; i < 3; ++i)
         topBarLayout->addWidget(topBarButtons[i]);
 
-    /* Initialize network manager */
-    manager = new QNetworkAccessManager(this);
-    connect(manager, SIGNAL(finished(QNetworkReply*)),
-            this, SLOT(managerFinished(QNetworkReply*)));
-
     /*  Main body logic
         Move to Sign Up page on signUpClicked signal    */
     connect(signInPage, SIGNAL(signUpClicked()), SLOT(setSignUpPage()));
     connect(signUpPage, SIGNAL(signInClicked()), SLOT(setSignInPage()));
     connect(signInPage, SIGNAL(userLoggedIn()), SLOT(setMainPage()));
+    connect(signInPage, SIGNAL(userLoggedIn()),
+            homePage, SLOT(onUserLogin()));
 
     stackedWidget->setCurrentIndex(0);
 }
 
-void TopBarAndStackedWidget::onExitButtonClicked()
+QNetworkAccessManager *TopBarAndStackedWidget::getNetworkManager()
 {
-
-    QApplication::quit();
+    return appNetworkManager;
 }
 
-/* Work around errors! */
-void TopBarAndStackedWidget::managerFinished(QNetworkReply *reply)
+void TopBarAndStackedWidget::onExitButtonClicked()
 {
-    if (reply->error()) {
-        qDebug() << reply->errorString();
-        qDebug() << reply->error();
-        return;
-    }
-
-    homePageLabel->setText(reply->readAll());
+    QApplication::quit();
 }
 
 void TopBarAndStackedWidget::setSignUpPage()
@@ -62,10 +53,7 @@ void TopBarAndStackedWidget::setSignInPage()
 void TopBarAndStackedWidget::setMainPage()
 {
     stackedWidget->setCurrentIndex(2);
-    QNetworkRequest request;
-    request.setUrl(QUrl("http://127.0.0.1:5000/register"));
-    request.setRawHeader("x-access-token", x_access_token.toUtf8());
-    manager->get(request);
+    qDebug() << "Moved to stackedWidget at index 2";
 }
 
 void TopBarAndStackedWidget::createLayouts()
@@ -92,13 +80,7 @@ void TopBarAndStackedWidget::createStackedWidget()
     /* Initialize all widgets pinned to stacked widget and connect them to it. */
     signInPage = new SignInWidget(stackedWidget);
     signUpPage = new SignUpWidget(stackedWidget);
-    homePage = new QWidget(stackedWidget);
-    homePage->setStyleSheet("background-color: #00FFA3");
-    homePage->setFixedSize(1200, 640);
-    homePageLabel = new QLabel(homePage);
-    homePageLabel->setGeometry(100, 100, 1100, 540);
-//    homePageLabel->setStyleSheet("background-color: #4C3099,"
-//                                 "color: #FFFFFF");
+    homePage = new HomePageWidget(stackedWidget);
 
     stackedWidget->addWidget(signInPage);
     stackedWidget->addWidget(signUpPage);

@@ -32,7 +32,7 @@ private:
 
     /* API connection components */
     QNetworkAccessManager *networkManager;
-    QNetworkReply *reply;
+    QNetworkReply *signUpReply;
 
     void layoutCreate();
     void signInCreate();
@@ -44,7 +44,7 @@ private:
 private slots:
     void onSignInButtonClicked();
     void onSignUpButtonClicked();
-    void signUpFinished(QNetworkReply *reply);
+    void signUpFinished();
     void showPassword();
     void hidePassword();
 };

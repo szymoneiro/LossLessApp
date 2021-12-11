@@ -1,6 +1,6 @@
 #include "../headers/sign_in_widget.h"
-#include <QNetworkReply>
 #include "../headers/top_bar_and_stacked_widget.h"
+#include <QNetworkReply>
 
 SignInWidget::SignInWidget(QWidget *parent) : QWidget(parent)
 {
@@ -9,27 +9,23 @@ SignInWidget::SignInWidget(QWidget *parent) : QWidget(parent)
     this->setStyleSheet("background-color: #FAFAFA");
 
     /* Create all the widget' compontents */
-    signUpCreate();
-    signInCreate();
+    signUpBoxCreate();
+    signInBoxCreate();
+    inputFieldsCreate();
     layoutCreate();
-    fieldsCreate();
+    labelsCreate();
     buttonsCreate();
 
-    connect(signUpButton, SIGNAL(clicked()), SLOT(onSignUpButtonClicked()));
-    connect(signInButton, SIGNAL(clicked()), SLOT(onSignInButtonClicked()));
-    connect(showPasswordButton, SIGNAL(pressed()), SLOT(showPassword()));
-    connect(showPasswordButton, SIGNAL(released()), SLOT(hidePassword()));
-
-
-    /* Add them to layout */
-    widgetLayout->addWidget(signUpWidget);
+    /* Connect all buttons' functions */
+    connect(signUpButton, &QPushButton::clicked, this, &SignInWidget::onSignUpButtonClicked);
+    connect(signInButton, &QPushButton::clicked, this, &SignInWidget::onSignInButtonClicked);
+    connect(showPasswordButton, &QPushButton::pressed, this, &SignInWidget::showPassword);
+    connect(showPasswordButton, &QPushButton::released, this, &SignInWidget::hidePassword);
 
     for (int i = 0; i < 2; ++i)
-        signInLayout->addWidget(userInputFields[i]);
+        signInBoxLayout->addWidget(userInputFields[i]);
 
-    networkManager = new QNetworkAccessManager(this);
-    connect(networkManager, SIGNAL(finished(QNetworkReply*)),
-            SLOT(signInFinished(QNetworkReply*)));
+    signInManager = qobject_cast<TopBarAndStackedWidget*>(parent)->getNetworkManager();
 }
 
 void SignInWidget::onSignUpButtonClicked()
@@ -40,13 +36,13 @@ void SignInWidget::onSignUpButtonClicked()
     errorLabel->setVisible(false);
 }
 
-void SignInWidget::signInFinished(QNetworkReply *reply)
+void SignInWidget::signInFinished()
 {
-    if (reply->error()) {
+    if (signInReply->error()) {
         QTimer::singleShot(5000, this, [this]{
             errorLabel->setVisible(false);
         });
-        if (reply->error() == QNetworkReply::AuthenticationRequiredError) {
+        if (signInReply->error() == QNetworkReply::AuthenticationRequiredError) {
             updateErrorLabel("Wrong username or password! Try again!", true);
         }
         else {
@@ -58,10 +54,12 @@ void SignInWidget::signInFinished(QNetworkReply *reply)
             errorLabel->setVisible(false);
         });
         updateErrorLabel("Success! Redirecting...", false);
-        QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
-        dynamic_cast<TopBarAndStackedWidget*>(parent()->parent())->x_access_token = doc["token"].toString();
+        QJsonDocument doc = QJsonDocument::fromJson(signInReply->readAll());
+        qobject_cast<TopBarAndStackedWidget*>(parent()->parent())->x_access_token =
+                doc["token"].toString();
         emit userLoggedIn();
     }
+    signInReply->deleteLater();
 }
 
 void SignInWidget::showPassword()
@@ -86,45 +84,31 @@ void SignInWidget::hidePassword()
 
 void SignInWidget::layoutCreate()
 {
-    widgetLayout = new QVBoxLayout(this);
-    widgetLayout->setSpacing(0);
-    widgetLayout->setContentsMargins(275, 85, 275, 175);
-
-    signInLayout = new QVBoxLayout(signUpWidget);
-    signInLayout->setSpacing(28);
-    signInLayout->setContentsMargins(125, 78, 125, 162);
+    signInBoxLayout = new QVBoxLayout(signInBox);
+    signInBoxLayout->setSpacing(28);
+    signInBoxLayout->setContentsMargins(125, 78, 125, 162);
 }
 
-void SignInWidget::signUpCreate()
+void SignInWidget::signUpBoxCreate()
 {
-    signInWidget = new QWidget(this);
-    signInWidget->setGeometry(307, 350, 585, 190);
-    signInWidget->setStyleSheet("background-color: #00FFA3;"
+    signUpBox = new QWidget(this);
+    signUpBox->setGeometry(307, 350, 585, 190);
+    signUpBox->setStyleSheet("background-color: #00FFA3;"
                                 "border-radius: 10px;"
                                 "border: 3px solid #000000");
 }
 
-void SignInWidget::signInCreate()
+void SignInWidget::signInBoxCreate()
 {
-    signUpWidget = new QWidget(this);
-    signUpWidget->setFixedSize(650, 380);
-    signUpWidget->setStyleSheet("background-color: #4C3099;"
+    signInBox = new QWidget(this);
+    signInBox->setGeometry(275, 85, 650, 380);
+    signInBox->setStyleSheet("background-color: #4C3099;"
                                 "border-radius: 10px;"
-                                "border: 3px solid #000000");
+                             "border: 3px solid #000000");
 }
 
-void SignInWidget::fieldsCreate()
+void SignInWidget::inputFieldsCreate()
 {
-    alreadyText = new QLabel(this);
-    alreadyText->setText("Don't have an account?");
-    alreadyText->setStyleSheet("color: #000000;"
-                               "font: bold;"
-                               "background-color: rgba(0,0,0,0%);"
-                               "font-size: 20px;"
-                               "border: 0px");
-    alreadyText->setGeometry(396, 479, 250, 40);
-
-    /* User input fields */
     for (int i = 0; i < 2; ++i){
         userInputFields[i] = new QLineEdit(this);
         userInputFields[i]->setFixedSize(400, 56);
@@ -140,18 +124,29 @@ void SignInWidget::fieldsCreate()
         userInputFields[i]->setMaxLength(18);
     }
     userInputFields[1]->setEchoMode(QLineEdit::Password);
+}
 
-    /* Info texts */
+void SignInWidget::labelsCreate()
+{
+    tipLabel = new QLabel(this);
+    tipLabel->setText("Don't have an account?");
+    tipLabel->setStyleSheet("color: #000000;"
+                               "font: bold;"
+                               "background-color: rgba(0,0,0,0%);"
+                               "font-size: 20px;"
+                               "border: 0px");
+    tipLabel->setGeometry(396, 479, 250, 40);
+
     for (int i = 0; i < 2; ++i){
-        textHelpers[i] = new QLabel(this);
-        textHelpers[i]->setText(fieldsTexts[i]);
-        textHelpers[i]->setStyleSheet("color: #FFFFFF;"
+        inputLabels[i] = new QLabel(this);
+        inputLabels[i]->setText(inputLabelsTexts[i]);
+        inputLabels[i]->setStyleSheet("color: #FFFFFF;"
                                       "font: bold;"
                                       "background-color: rgba(0,0,0,0%);"
                                       "font-size: 13px");
     }
-    textHelpers[0]->setGeometry(429, 141, 79, 17);
-    textHelpers[1]->setGeometry(429, 225, 79, 17);
+    inputLabels[0]->setGeometry(429, 141, 79, 17);
+    inputLabels[1]->setGeometry(429, 225, 79, 17);
 
     errorLabel = new QLabel(this);
     errorLabel->setAlignment(Qt::AlignCenter);
@@ -243,7 +238,8 @@ void SignInWidget::onSignInButtonClicked()
 
         QNetworkRequest loginRequest;
         loginRequest.setUrl(QUrl("http://127.0.0.1:5000/login"));
-        loginRequest.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/x-www-form-urlencoded"));
+        loginRequest.setHeader(QNetworkRequest::ContentTypeHeader,
+                               QVariant("application/x-www-form-urlencoded"));
 
         QUrlQuery query;
         query.addQueryItem("username", userInputFields[0]->text());
@@ -252,6 +248,8 @@ void SignInWidget::onSignInButtonClicked()
         QByteArray postData;
         postData = query.toString(QUrl::FullyEncoded).toUtf8();
 
-        networkManager->post(loginRequest, postData);
+        signInReply = this->signInManager->post(loginRequest, postData);
+        connect(signInReply, &QNetworkReply::finished,
+                this, &SignInWidget::signInFinished);
     }
 }

@@ -5,6 +5,7 @@
 #include <QNetworkAccessManager>
 #include "sign_up_widget.h"
 #include "sign_in_widget.h"
+#include "home_page_widget.h"
 
 class TopBarAndStackedWidget : public QWidget
 {
@@ -12,10 +13,10 @@ class TopBarAndStackedWidget : public QWidget
 public:
     explicit TopBarAndStackedWidget(QWidget *parent = nullptr);
     QString x_access_token = "EXAMPLE-TOKEN-jdksaldkjsalkda";
+    static QNetworkAccessManager* getNetworkManager();
 
 private slots:
     void onExitButtonClicked();
-    void managerFinished(QNetworkReply *reply);
     void setSignUpPage();
     void setSignInPage();
     void setMainPage();
@@ -45,15 +46,10 @@ private:
     /* stackedWidget's widgets */
     SignInWidget *signInPage;
     SignUpWidget *signUpPage;
-    QWidget *homePage;
-    // JUST FOR TEST, REMOVE THIS LATER
-    QLabel *homePageLabel;
+    HomePageWidget *homePage;
 
     /* Buttons SETTINGS/USER/EXIT */
     QPushButton *topBarButtons[3];
-
-    /* Backend connection components */
-    QNetworkAccessManager *manager;
 
     void createLayouts();
     void createStackedWidget();

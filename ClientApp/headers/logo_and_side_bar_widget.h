@@ -18,11 +18,11 @@ private:
     };
     enum { button_size = 56, icon_size = 32 };
 
-    QVBoxLayout *leftWidgetLayout;
-    QVBoxLayout *sideBarLayout;
+    QLabel *logoWidget;
+    QVBoxLayout *iconWidgetLayout;
 
-    QLabel *logoBarLayout;
     QWidget *sideBarWidget;
+    QVBoxLayout *sideBarWidgetLayout;
 
     /* HOME/STATS/BUY/SELL */
     QPushButton *sideBarButtons[4];

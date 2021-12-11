@@ -15,39 +15,40 @@ signals:
     void userLoggedIn();
 
 private:
-    QVBoxLayout *widgetLayout;
-
     /* Upper area of widget */
-    QWidget *signUpWidget;
-    QVBoxLayout *signInLayout;
+    QWidget *signInBox;
+    QVBoxLayout *signInBoxLayout;
     QLineEdit *userInputFields[2];
-    QLabel *textHelpers[2];
-    QPushButton *signUpButton;
-    QStringList fieldsTexts = { "USERNAME", "PASSWORD" };
+    QLabel *inputLabels[2];
+    QStringList inputLabelsTexts = { "USERNAME", "PASSWORD" };
+    QPushButton *signInButton;
 
     /* Lower are of widget */
-    QWidget *signInWidget;
-    QLabel *alreadyText;
-    QPushButton *signInButton;
-    QLabel *errorLabel;
+    QWidget *signUpBox;
+    QLabel *tipLabel;
+    QPushButton *signUpButton;
     QPushButton *showPasswordButton;
 
+    /* Client/server response label */
+    QLabel *errorLabel;
+
     /* API connection components */
-    QNetworkAccessManager *networkManager;
-    QNetworkReply *reply;
+    QNetworkAccessManager *signInManager;
+    QNetworkReply *signInReply;
 
 
     void layoutCreate();
-    void signUpCreate();
-    void signInCreate();
-    void fieldsCreate();
+    void signUpBoxCreate();
+    void signInBoxCreate();
+    void inputFieldsCreate();
+    void labelsCreate();
     void buttonsCreate();
     void updateErrorLabel(QString message, bool error);
 
 private slots:
     void onSignInButtonClicked();
     void onSignUpButtonClicked();
-    void signInFinished(QNetworkReply *reply);
+    void signInFinished();
     void showPassword();
     void hidePassword();
 };

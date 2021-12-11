@@ -5,9 +5,8 @@
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    //MainWidget w;
-    HomePageWidget w;
-    w.show();
-    return a.exec();
+    QApplication application(argc, argv);
+    MainWidget lossLessApp;
+    lossLessApp.show();
+    return application.exec();
 }

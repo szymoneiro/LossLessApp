@@ -11,6 +11,12 @@ public:
     explicit HomePageWidget(QWidget *parent = nullptr);
 
 private:
+    enum class recordType {
+        cryptoRecord = 1,
+        currencyRecord = 2,
+        stockRecord = 3
+    };
+
     QPushButton *tabButtons[3];
     QStringList buttonsNames = {
         "Cryptocurrencies",
@@ -27,24 +33,16 @@ private:
         "Cryptocurrency name",
         "Quantity",
         "Buy price",
-        "Buy date"
-    };
-
-    QWidget *records[40];
-    QLabel *records_labels[160];
-    QStringList mock_data = {
-        "Basic Attention Token",
-        "1.25",
-        "1.03343814063204",
-        "20.11.2021 01:03:53"
+        "Current price"
     };
 
     QNetworkAccessManager *connectionManager;
-    QNetworkReply *reply;
 
     void buttonsCreate();
-    void createRecords();
     void scrollAreaCreate();
+    void obtainUserRecords(recordType type);
+private slots:
+    void onUserLogin();
 };
 
 #endif // HOME_PAGE_WIDGET_H

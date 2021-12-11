@@ -7,34 +7,34 @@ LogoAndSideBarWidget::LogoAndSideBarWidget(QWidget *parent) : QWidget(parent)
     createLogoBar();
     createButtons();
 
-    leftWidgetLayout->addWidget(logoBarLayout);
-    leftWidgetLayout->addWidget(sideBarWidget);
+    iconWidgetLayout->addWidget(logoWidget);
+    iconWidgetLayout->addWidget(sideBarWidget);
 
-    sideBarWidget->setLayout(sideBarLayout);
+    sideBarWidget->setLayout(sideBarWidgetLayout);
     for (int i = 0; i < 4; ++i)
-        sideBarLayout->addWidget(sideBarButtons[i]);
+        sideBarWidgetLayout->addWidget(sideBarButtons[i]);
 }
 
 void LogoAndSideBarWidget::createLayouts()
 {
-    leftWidgetLayout = new QVBoxLayout(this);
-    leftWidgetLayout->setSpacing(0);
-    leftWidgetLayout->setContentsMargins(0, 0, 0, 0);
+    iconWidgetLayout = new QVBoxLayout(this);
+    iconWidgetLayout->setSpacing(0);
+    iconWidgetLayout->setContentsMargins(0, 0, 0, 0);
 
-    sideBarLayout = new QVBoxLayout(sideBarWidget);
-    sideBarLayout->setSpacing(8);
-    sideBarLayout->setContentsMargins(12, 16, 12, 376);
+    sideBarWidgetLayout = new QVBoxLayout(sideBarWidget);
+    sideBarWidgetLayout->setSpacing(8);
+    sideBarWidgetLayout->setContentsMargins(12, 16, 12, 376);
 }
 
 void LogoAndSideBarWidget::createLogoBar()
 {
-    logoBarLayout = new QLabel(this);
-    logoBarLayout->setText("LOGO");
-    logoBarLayout->setStyleSheet("background-color: #00FFA3;"
+    logoWidget = new QLabel(this);
+    logoWidget->setText("LOGO");
+    logoWidget->setStyleSheet("background-color: #00FFA3;"
                             "color: #FFFFFF;"
                             "font: bold;");
-    logoBarLayout->setAlignment(Qt::AlignCenter);
-    logoBarLayout->setFixedSize(80, 80);
+    logoWidget->setAlignment(Qt::AlignCenter);
+    logoWidget->setFixedSize(80, 80);
 }
 
 void LogoAndSideBarWidget::createSideBar()
