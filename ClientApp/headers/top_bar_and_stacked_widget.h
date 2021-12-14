@@ -6,6 +6,7 @@
 #include "sign_up_widget.h"
 #include "sign_in_widget.h"
 #include "home_page_widget.h"
+#include "buy_widget.h"
 
 class TopBarAndStackedWidget : public QWidget
 {
@@ -47,6 +48,7 @@ private:
     SignInWidget *signInPage;
     SignUpWidget *signUpPage;
     HomePageWidget *homePage;
+    BuyWidget *buyPage;
 
     /* Buttons SETTINGS/USER/EXIT */
     QPushButton *topBarButtons[3];

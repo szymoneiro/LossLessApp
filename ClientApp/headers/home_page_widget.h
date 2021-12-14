@@ -37,12 +37,18 @@ private:
     };
 
     QNetworkAccessManager *connectionManager;
+    QString *accessToken;
 
     void buttonsCreate();
     void scrollAreaCreate();
     void obtainUserRecords(recordType type);
+    void clearScrollLayout();
+    void setActiveButton(recordType type);
 private slots:
     void onUserLogin();
+    void onCryptocurrenciesTabClick();
+    void onCurrenciesTabClick();
+    void onStocksTabClick();
 };
 
 #endif // HOME_PAGE_WIDGET_H

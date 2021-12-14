@@ -7,10 +7,18 @@ HomePageWidget::HomePageWidget(QWidget *parent) : QWidget(parent)
 {
     this->setFixedSize(1200, 640);
     this->setStyleSheet("background-color: #FAFAFA");
-    connectionManager = new QNetworkAccessManager(this);
+    connectionManager = qobject_cast<TopBarAndStackedWidget*>(parent->parent())->getNetworkManager();
+    accessToken = &qobject_cast<TopBarAndStackedWidget*>(this->parent()->parent())->x_access_token;
 
     buttonsCreate();
     scrollAreaCreate();
+
+    connect(tabButtons[0], &QPushButton::clicked,
+            this, &HomePageWidget::onCryptocurrenciesTabClick);
+    connect(tabButtons[1], &QPushButton::clicked,
+            this, &HomePageWidget::onCurrenciesTabClick);
+    connect(tabButtons[2], &QPushButton::clicked,
+            this, &HomePageWidget::onStocksTabClick);
 }
 
 void HomePageWidget::buttonsCreate()
@@ -88,9 +96,7 @@ void HomePageWidget::obtainUserRecords(recordType type)
         recordsRequest.setUrl(QUrl("http://127.0.0.1:5000/stocks/records"));
     }
 
-    /* We travel from HomePageWidget->StackedWidget->TopBarAndStackedWidget */
-    QString accessToken = qobject_cast<TopBarAndStackedWidget*>(parent()->parent())->x_access_token;
-    recordsRequest.setRawHeader(QByteArray("x-access-token"), accessToken.toUtf8());
+    recordsRequest.setRawHeader(QByteArray("x-access-token"), accessToken->toUtf8());
     recordsRequest.setHeader(QNetworkRequest::ContentTypeHeader,
                       QVariant("application/x-www-form-urlencoded"));
 
@@ -133,68 +139,71 @@ void HomePageWidget::obtainUserRecords(recordType type)
         index++;
     }
 
-    QMap<QString, QString> idNameMap;
-    QMap<QString, double> idCurrentPriceMap;
-
-    /* 1. Send get request
-     * 2. Wait for response
-     * 3. Add both response values to QMap
-     * 4. Create records and append them to dashboard */
-    QNetworkRequest singleRecordRequest;
-    QString baseUrl;
+    /* Another concept, to prevent multiple requests:
+     * 1. Send get all cryptocurrencies/currencies/stocks
+     * 2. For all saved unique record_id - append value to name and value map
+     * 3.
+     *
+     */
+    QNetworkRequest recordsValuesRequest;
     if (type == recordType::cryptoRecord) {
-        baseUrl = "http://127.0.0.1:5000/cryptocurrencies/";
+        recordsValuesRequest.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies"));
     }
     else if (type == recordType::currencyRecord) {
-         baseUrl = "http://127.0.0.1:5000/currencies/";
+         recordsValuesRequest.setUrl(QUrl("http://127.0.0.1:5000/currencies"));
     }
     else {
-         baseUrl = "http://127.0.0.1:5000/stocks/";
+         recordsValuesRequest.setUrl(QUrl("http://127.0.0.1:5000/stocks"));
     }
 
-    singleRecordRequest.setRawHeader(QByteArray("x-access-token"), accessToken.toUtf8());
-    singleRecordRequest.setHeader(QNetworkRequest::ContentTypeHeader,
+    recordsValuesRequest.setRawHeader(QByteArray("x-access-token"), accessToken->toUtf8());
+    recordsValuesRequest.setHeader(QNetworkRequest::ContentTypeHeader,
                                   QVariant("application/x-www-form-urlencoded"));
-    QVectorIterator<QString> i(recordsIds);
-    while (i.hasNext()){
-       singleRecordRequest.setUrl(QUrl(baseUrl + i.peekNext()));
-       QNetworkReply *singleRecordReply = this->connectionManager->get(singleRecordRequest);
+    QNetworkReply *recordsValuesReply = this->connectionManager->get(recordsValuesRequest);
 
-       /* Wait for the server response */
-       QEventLoop singleConnectionLoop;
-       connect(singleRecordReply, &QNetworkReply::finished,
-               &singleConnectionLoop, &QEventLoop::quit);
-       singleConnectionLoop.exec();
+    /* Wait for the server response */
+    QEventLoop singleConnectionLoop;
+    connect(recordsValuesReply, &QNetworkReply::finished,
+            &singleConnectionLoop, &QEventLoop::quit);
+    singleConnectionLoop.exec();
 
-       /* In case we get an error from the server */
-       if (singleRecordReply->error()) {
-           if (singleRecordReply->error() == QNetworkReply::ConnectionRefusedError) {
-               qDebug() << "There you should implement displaying server/invalid token error!";
-           }
-           else {
-               QJsonDocument recordsReplyError = QJsonDocument::fromJson(
-                           singleRecordReply->readAll());
-               qDebug() << recordsReplyError["message"].toString();
-               singleRecordReply->deleteLater();
-           }
-           return;
-       }
-
-       QJsonDocument singleRecordReplyJson = QJsonDocument::fromJson(singleRecordReply->readAll());
-       idNameMap[i.peekNext()] = singleRecordReplyJson["name"].toString();
-       idCurrentPriceMap[i.next()] = singleRecordReplyJson["value"].toDouble();
-
-       singleRecordReply->deleteLater();
+    /* In case we get an error from the server */
+    if (recordsValuesReply->error()) {
+        if (recordsValuesReply->error() == QNetworkReply::ConnectionRefusedError) {
+            qDebug() << "There you should implement displaying server/invalid token error!";
+        }
+        else {
+            QJsonDocument recordsReplyError = QJsonDocument::fromJson(
+                        recordsValuesReply->readAll());
+            qDebug() << recordsReplyError["message"].toString();
+            recordsValuesReply->deleteLater();
+        }
+        return;
     }
+
+    QMap<QString, QString> idNameMap;
+    QMap<QString, double> idCurrentPriceMap;
+    QVectorIterator<QString> ids(recordsIds);
+    QJsonDocument recordsValuesJson = QJsonDocument::fromJson(recordsValuesReply->readAll());
+    QJsonArray recordsArray = recordsValuesJson.array();
+    while (ids.hasNext()) {
+        for (int i = 0; i < recordsArray.size(); ++i) {
+            if (ids.peekNext().toInt() == recordsArray.at(i)["id"].toInt()) {
+                idNameMap[ids.peekNext()] = recordsArray.at(i)["name"].toString();
+                idCurrentPriceMap[ids.next()] = recordsArray.at(i)["value"].toDouble();
+                break;
+            }
+        }
+    }
+        recordsValuesReply->deleteLater();
 
     QVectorIterator<QJsonObject> j(records);
     while (j.hasNext()) {
         QWidget *currentRecord = new QWidget(this);
-        QHBoxLayout *currentRecordLayout = new QHBoxLayout(this);
+        QHBoxLayout *currentRecordLayout = new QHBoxLayout(currentRecord);
         currentRecordLayout->setSpacing(32);
         currentRecordLayout->setContentsMargins(32, 10, 32, 10);
 
-        currentRecord->setLayout(currentRecordLayout);
         currentRecord->setStyleSheet("background-color: #C4C4C4;"
                                      "border-radius: 10px;"
                                      "border: 2px solid #000000");
@@ -240,12 +249,77 @@ void HomePageWidget::obtainUserRecords(recordType type)
         currentRecordLayout->addWidget(recordBuyPrice);
         currentRecordLayout->addWidget(recordCurrentPrice);
     }
-        recordsReply->deleteLater();
+    recordsReply->deleteLater();
+}
+
+void HomePageWidget::clearScrollLayout()
+{
+    QLayoutItem *child;
+    QVBoxLayout *layoutToClear = this->scrollLayout;
+    while ((child = layoutToClear->takeAt(0)) != 0) {
+        delete child->widget();
+        delete child;
+    }
+}
+
+void HomePageWidget::setActiveButton(recordType type)
+{
+    QStringList colours;
+    if (type == recordType::cryptoRecord) {
+        colours = {
+            "00FFA3;",
+            "C8C8C8;",
+            "C8C8C8;"
+        };
+    }
+    else if (type == recordType::currencyRecord) {
+        colours = {
+            "C8C8C8;",
+            "00FFA3;",
+            "C8C8C8;"
+        };
+    }
+    else {
+        colours = {
+            "C8C8C8;",
+            "C8C8C8;",
+            "00FFA3;"
+        };
+    }
+    for (int i = 0; i < 3; ++i) {
+        tabButtons[i]->setStyleSheet("background-color: #" + colours[i] +
+                                     "border-radius: 10px;"
+                                     "border: 3px solid #000000;"
+                                     "font-weight: bold;"
+                                     "font-size: 14px");
+    }
 }
 
 void HomePageWidget::onUserLogin()
 {
     obtainUserRecords(recordType::cryptoRecord);
-    //obtainUserRecords(recordType::currencyRecord);
-    //obtainUserRecords(recordType::stockRecord);
+}
+
+void HomePageWidget::onCryptocurrenciesTabClick()
+{
+    clearScrollLayout();
+    scrollAreaLabels[0]->setText("Cryptocurrency name");
+    setActiveButton(recordType::cryptoRecord);
+    obtainUserRecords(recordType::cryptoRecord);
+}
+
+void HomePageWidget::onCurrenciesTabClick()
+{
+    clearScrollLayout();
+    scrollAreaLabels[0]->setText("Currency name");
+    setActiveButton(recordType::currencyRecord);
+    obtainUserRecords(recordType::currencyRecord);
+}
+
+void HomePageWidget::onStocksTabClick()
+{
+    clearScrollLayout();
+    scrollAreaLabels[0]->setText("Stock name");
+    setActiveButton(recordType::stockRecord);
+    obtainUserRecords(recordType::stockRecord);
 }

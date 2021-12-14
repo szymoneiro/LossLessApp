@@ -19,13 +19,15 @@ TopBarAndStackedWidget::TopBarAndStackedWidget(QWidget *parent) : QWidget(parent
     for (int i = 0; i < 3; ++i)
         topBarLayout->addWidget(topBarButtons[i]);
 
-    /*  Main body logic
-        Move to Sign Up page on signUpClicked signal    */
-    connect(signInPage, SIGNAL(signUpClicked()), SLOT(setSignUpPage()));
     connect(signUpPage, SIGNAL(signInClicked()), SLOT(setSignInPage()));
+
+    connect(signInPage, SIGNAL(signUpClicked()), SLOT(setSignUpPage()));
+
     connect(signInPage, SIGNAL(userLoggedIn()), SLOT(setMainPage()));
+//    connect(signInPage, SIGNAL(userLoggedIn()),
+//            homePage, SLOT(onUserLogin()));
     connect(signInPage, SIGNAL(userLoggedIn()),
-            homePage, SLOT(onUserLogin()));
+            buyPage, SLOT(onUserLogin()));
 
     stackedWidget->setCurrentIndex(0);
 }
@@ -52,8 +54,8 @@ void TopBarAndStackedWidget::setSignInPage()
 
 void TopBarAndStackedWidget::setMainPage()
 {
-    stackedWidget->setCurrentIndex(2);
-    qDebug() << "Moved to stackedWidget at index 2";
+    // Default should be 2
+    stackedWidget->setCurrentIndex(3);
 }
 
 void TopBarAndStackedWidget::createLayouts()
@@ -81,10 +83,12 @@ void TopBarAndStackedWidget::createStackedWidget()
     signInPage = new SignInWidget(stackedWidget);
     signUpPage = new SignUpWidget(stackedWidget);
     homePage = new HomePageWidget(stackedWidget);
+    buyPage = new BuyWidget(stackedWidget);
 
     stackedWidget->addWidget(signInPage);
     stackedWidget->addWidget(signUpPage);
     stackedWidget->addWidget(homePage);
+    stackedWidget->addWidget(buyPage);
 }
 
 void TopBarAndStackedWidget::createButtons()
