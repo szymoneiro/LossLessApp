@@ -58,3 +58,13 @@ void LogoAndSideBarWidget::createButtons()
         sideBarButtons[i]->setIconSize(QSize(icon_size, icon_size));
     }
 }
+
+void LogoAndSideBarWidget::onHomePageButtonClicked()
+{
+    emit homePageClicked();
+}
+
+void LogoAndSideBarWidget::onBuyPageButtonClicked()
+{
+    emit buyPageClicked();
+}

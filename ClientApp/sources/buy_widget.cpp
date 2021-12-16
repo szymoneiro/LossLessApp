@@ -181,11 +181,6 @@ void BuyWidget::obtainServerRecords(recordType type)
     recordsReply->deleteLater();
 }
 
-void BuyWidget::onUserLogin()
-{
-    obtainServerRecords(recordType::cryptoRecord);
-}
-
 void BuyWidget::buyCrypto()
 {
     QWidget *recordParentWidget = qobject_cast<QWidget*>(QObject::sender()->parent());

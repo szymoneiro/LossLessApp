@@ -42,7 +42,6 @@ private:
     void obtainServerRecords(recordType type);
 
 private slots:
-    void onUserLogin();
     void buyCrypto();
 };
 

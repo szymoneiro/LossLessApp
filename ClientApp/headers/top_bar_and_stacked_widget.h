@@ -7,6 +7,7 @@
 #include "sign_in_widget.h"
 #include "home_page_widget.h"
 #include "buy_widget.h"
+#include "logo_and_side_bar_widget.h"
 
 class TopBarAndStackedWidget : public QWidget
 {
@@ -21,6 +22,8 @@ private slots:
     void setSignUpPage();
     void setSignInPage();
     void setMainPage();
+    void setHomePage();
+    void setBuyPage();
 
 private:
     QDir iconsDir;
@@ -52,6 +55,9 @@ private:
 
     /* Buttons SETTINGS/USER/EXIT */
     QPushButton *topBarButtons[3];
+
+    /* Sidebar object to connect to navigation */
+    LogoAndSideBarWidget *sideBarWidget;
 
     void createLayouts();
     void createStackedWidget();

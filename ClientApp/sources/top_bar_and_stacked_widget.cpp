@@ -1,4 +1,5 @@
 #include "../headers/top_bar_and_stacked_widget.h"
+#include "../headers/main_widget.h"
 #include <QNetworkReply>
 
 Q_GLOBAL_STATIC(QNetworkAccessManager, appNetworkManager)
@@ -24,10 +25,18 @@ TopBarAndStackedWidget::TopBarAndStackedWidget(QWidget *parent) : QWidget(parent
     connect(signInPage, SIGNAL(signUpClicked()), SLOT(setSignUpPage()));
 
     connect(signInPage, SIGNAL(userLoggedIn()), SLOT(setMainPage()));
-//    connect(signInPage, SIGNAL(userLoggedIn()),
-//            homePage, SLOT(onUserLogin()));
+    connect(signInPage, SIGNAL(userLoggedIn()),
+            homePage, SLOT(onUserLogin()));
     connect(signInPage, SIGNAL(userLoggedIn()),
             buyPage, SLOT(onUserLogin()));
+
+    MainWidget *parentWidget = qobject_cast<MainWidget*>(this->parent());
+    QHBoxLayout *parentLayout = qobject_cast<QHBoxLayout*>(parentWidget->layout());
+    sideBarWidget = qobject_cast<LogoAndSideBarWidget*>(parentLayout->itemAt(0)->widget());
+    connect(sideBarWidget, SIGNAL(homePageClicked),
+            this, SLOT(setHomePage));
+    connect(sideBarWidget, SIGNAL(buyPageClicked),
+            this, SLOT(setBuyPage));
 
     stackedWidget->setCurrentIndex(0);
 }
@@ -54,7 +63,16 @@ void TopBarAndStackedWidget::setSignInPage()
 
 void TopBarAndStackedWidget::setMainPage()
 {
-    // Default should be 2
+    stackedWidget->setCurrentIndex(2);
+}
+
+void TopBarAndStackedWidget::setHomePage()
+{
+    stackedWidget->setCurrentIndex(2);
+}
+
+void TopBarAndStackedWidget::setBuyPage()
+{
     stackedWidget->setCurrentIndex(3);
 }
 
