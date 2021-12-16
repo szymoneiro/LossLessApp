@@ -190,7 +190,7 @@ class SignIn(Resource):
         
         if check_password_hash(user.password, args['password']):
             token = jwt.encode({'public_id': user.public_id, 'exp': datetime.datetime.utcnow() + \
-                datetime.timedelta(minutes=30)},app.config['SECRET_KEY'],algorithm="HS256")
+                datetime.timedelta(minutes=120)},app.config['SECRET_KEY'],algorithm="HS256")
             return {"token": token}, 200
         
         # We get there only when password is wrong, but for safety issues we cannot say that to an user, so we display same result as when wrong username.
@@ -642,6 +642,12 @@ class StockRecords(Resource):
             output.append(single_record)
         return jsonify(output)
 
+class Balance(Resource):
+    @token_required
+    def get(current_user, self):
+        user_balance = { "balance" : current_user.balance }
+        return jsonify(user_balance)
+
 # Endpoints to access single cryptocurrency/currency/stock by their ID
 api.add_resource(Cryptocurrency, "/cryptocurrencies/<int:crypto_id>")
 api.add_resource(Currency, "/currencies/<int:currency_id>")
@@ -672,6 +678,9 @@ api.add_resource(SellStock, "/stocks/sell")
 api.add_resource(CryptoRecords, "/cryptocurrencies/records")
 api.add_resource(CurrenciesRecords, "/currencies/records")
 api.add_resource(StockRecords, "/stocks/records")
+
+# Endpoint for getting current user account balance
+api.add_resource(Balance, "/balance")
 
 if __name__ == "__main__":
     app.run(debug=True)

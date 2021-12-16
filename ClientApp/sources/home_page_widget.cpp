@@ -14,7 +14,7 @@ HomePageWidget::HomePageWidget(QWidget *parent) : QWidget(parent)
     buttonsCreate();
     scrollAreaCreate();
 
-    /* Create connection between buying widget and sidebar which emit signal to switch between widgets. */
+    /* Create connection between selling widget and sidebar which emit signal to switch between widgets. */
     MainWidget *parentWidget = qobject_cast<MainWidget*>(this->parent()->parent()->parent());
     QHBoxLayout *parentLayout = qobject_cast<QHBoxLayout*>(parentWidget->layout());
     sidebarWidget = qobject_cast<LogoAndSideBarWidget*>(parentLayout->itemAt(0)->widget());
@@ -67,6 +67,12 @@ void HomePageWidget::scrollAreaCreate()
 
     scrollWidget->setLayout(scrollLayout);
     scrollWidget->setStyleSheet("background-color: #4C3099");
+
+    QGraphicsDropShadowEffect *scrollAreaShadow = new QGraphicsDropShadowEffect(scrollWidget);
+    scrollAreaShadow->setBlurRadius(2);
+    scrollAreaShadow->setColor(QColor(0, 0, 0, 64));
+    scrollAreaShadow->setOffset(2, 5);
+    scrollArea->setGraphicsEffect(scrollAreaShadow);
 
     const int label_width = 198;
     const int label_height = 30;
@@ -133,8 +139,6 @@ void HomePageWidget::obtainUserRecords(recordType type)
 
     QJsonDocument recordsReplyJson = QJsonDocument::fromJson(recordsReply->readAll());
     int index = 0;
-    /* Warning below is known issue:
-     * https://forum.qt.io/topic/123718/use-vector-instead-of-qlist/2 */
     QVector<QJsonObject> records;
     QVector<QString> recordsIds;
     while (recordsReplyJson[index] != QJsonValue::Undefined) {
@@ -148,12 +152,6 @@ void HomePageWidget::obtainUserRecords(recordType type)
         index++;
     }
 
-    /* Another concept, to prevent multiple requests:
-     * 1. Send get all cryptocurrencies/currencies/stocks
-     * 2. For all saved unique record_id - append value to name and value map
-     * 3.
-     *
-     */
     QNetworkRequest recordsValuesRequest;
     if (type == recordType::cryptoRecord) {
         recordsValuesRequest.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies"));
@@ -217,6 +215,11 @@ void HomePageWidget::obtainUserRecords(recordType type)
                                      "border-radius: 10px;"
                                      "border: 2px solid #000000");
         currentRecord->setFixedSize(952, 50);
+        QGraphicsDropShadowEffect *currentRecordShadow = new QGraphicsDropShadowEffect(currentRecord);
+        currentRecordShadow->setBlurRadius(2);
+        currentRecordShadow->setColor(QColor(0, 0, 0, 64));
+        currentRecordShadow->setOffset(2, 5);
+        currentRecord->setGraphicsEffect(currentRecordShadow);
 
         /* 1. Record name
          * 2. Record quantity
@@ -229,6 +232,18 @@ void HomePageWidget::obtainUserRecords(recordType type)
                                         "font-size: 14px;"
                                         "font-weight: bold";
 
+        QString buyRecordStylesheet = "background-color: #00FFA3;"
+                                      "border-radius: 10px;"
+                                      "border: 2px solid #000000;"
+                                      "font-size: 14px;"
+                                      "font-weight: bold";
+
+        QString sellRecordStylesheet = "background-color: #FF004C;"
+                                       "border-radius: 10px;"
+                                       "border: 2px solid #000000;"
+                                       "font-size: 14px;"
+                                       "font-weight: bold";
+
         QString currentRecordID = QString::number(j.peekNext()["record_id"].toDouble());
 
         QLabel *recordName = new QLabel(idNameMap[currentRecordID], currentRecord);
@@ -236,8 +251,15 @@ void HomePageWidget::obtainUserRecords(recordType type)
         recordName->setFont(QFont("Lato"));
         recordName->setAlignment(Qt::AlignCenter);
 
-        QLabel *recordQuantity = new QLabel(QString::number(j.peekNext()["quantity"].toDouble(), 'g', 12), currentRecord);
-        recordQuantity->setStyleSheet(recordValueStylesheet);
+        double quantity = j.peekNext()["quantity"].toDouble();
+        QLabel *recordQuantity = new QLabel(QString::number(quantity, 'g', 12), currentRecord);
+        if (quantity > 0.0) {
+            recordQuantity->setStyleSheet(buyRecordStylesheet);
+        }
+        else {
+           recordQuantity->setStyleSheet(sellRecordStylesheet);
+        }
+
         recordQuantity->setFont(QFont("Lato"));
         recordQuantity->setAlignment(Qt::AlignCenter);
 

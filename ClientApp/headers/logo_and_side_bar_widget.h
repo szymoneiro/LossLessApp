@@ -8,9 +8,12 @@ class LogoAndSideBarWidget : public QWidget
     Q_OBJECT
 public:
     explicit LogoAndSideBarWidget(QWidget *parent = nullptr);
+
 signals:
     void homePageClicked();
     void buyPageClicked();
+    void sellPageClicked();
+
 private:
     QDir iconsDir;
     QStringList iconsNames = {
@@ -35,9 +38,12 @@ private:
     void createLogoBar();
     void createSideBar();
     void createButtons();
+    void createShadows();
+
 private slots:
     void onHomePageButtonClicked();
     void onBuyPageButtonClicked();
+    void onSellPageButtonClicked();
 };
 
 #endif // LOGO_AND_SIDE_BAR_WIDGET_H

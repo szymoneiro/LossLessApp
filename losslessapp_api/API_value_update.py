@@ -9,6 +9,8 @@ import time
 API = "http://127.0.0.1:5000"
 crypto_endpoint = "/cryptocurrencies"
 currency_endpoint = "/currencies"
+stock_endpoint = "/stocks"
+FIRST_HALF = False
 
 most_popular_currencies = ["EUR", "JPY", "GBP", "AUD", "CAD", "CHF", "CNY", "SEK",
                            "MXN", "NZD", "SGD", "HKD", "NOK", "KRW", "TRY", "INR",
@@ -54,6 +56,22 @@ if __name__ == "__main__":
         print("FreeCurrencyAPI key is missing!")
         exit(-1)
 
+    # tveledataAPI
+    api_path = os.path.abspath(os.path.join(os.path.abspath(__file__), '../stock_key.txt'))
+    try:
+        f = open(api_path, 'r')
+    except FileNotFoundError:
+        print("Stock API key is missing!")
+        exit(-1)
+    
+    STOCK_KEY = f.read()
+    f.close()
+    first_half_parameter = "AAL,AAPL,AMD,AMZN,INTC"
+    first_half_stocks = ["AAL", "AAPL", "AMD", "AMZN", "INTC"]
+
+    second_half_parameter = "IRBT,MSFT,NVDA,SBUX,TSLA"
+    second_half_stocks = ["IRBT", "MSFT", "NVDA", "SBUX", "TSLA"]
+
     # Obtain IDs from file
     IDs_file_path = os.path.abspath(os.path.join(get_current_location(), '../../cryptocurrencies/IDs.txt'))
     IDs_file = open(IDs_file_path, 'r')
@@ -90,15 +108,47 @@ if __name__ == "__main__":
             i = 1
             for currency in most_popular_currencies:
                 response = requests.patch(API + currency_endpoint + '/' + str(i),
-                                          {"name": currency, "value": data["data"][currency]}, headers=x_access_key)
+                                          {"name": currency, "value": 1.0/data["data"][currency]}, headers=x_access_key)
                 print(response.json())
                 i += 1
         except (ConnectionError, Timeout, TooManyRedirects) as e:
             print(e)
 
+    def stock_update():
+        global FIRST_HALF
+        if FIRST_HALF:
+            url = f"https://api.twelvedata.com/price?symbol={first_half_parameter}&dp=11&apikey={STOCK_KEY}"
+        else:
+            url = f"https://api.twelvedata.com/price?symbol={second_half_parameter}&dp=11&apikey={STOCK_KEY}"
+        
+        try:
+            response = requests.get(url).json()
+            dumped_response = json.dumps(response)
+            data = json.loads(dumped_response)
+            if FIRST_HALF:
+                i = 1
+                for stock in first_half_stocks:
+                    print(stock)
+                    response = requests.patch(API + stock_endpoint + "/" + str(i),
+                    {"name": stock, "value": data[stock]["price"]}, headers=x_access_key)
+                    print(response.json())
+                    i += 1
+            else:
+                i = 6
+                for stock in second_half_stocks:
+                    response = requests.patch(API + stock_endpoint + "/" + str(i),
+                    {"name": stock, "value": data[stock]["price"]}, headers=x_access_key)
+                    print(response.json())
+                    i += 1
+            FIRST_HALF = not FIRST_HALF
+        except (ConnectionError, Timeout, TooManyRedirects) as e:
+            print(e)
 
-    schedule.every(15).minutes.do(crypto_update)
-    schedule.every(15).minutes.do(currency_update)
+
+
+    schedule.every(1).minutes.do(crypto_update)
+    schedule.every(1).minutes.do(currency_update)
+    schedule.every(1).minutes.do(stock_update)
 
     while True:
         schedule.run_pending()

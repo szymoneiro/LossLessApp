@@ -7,11 +7,15 @@ Q_GLOBAL_STATIC(QNetworkAccessManager, appNetworkManager)
 TopBarAndStackedWidget::TopBarAndStackedWidget(QWidget *parent) : QWidget(parent)
 {
     createLayouts();
+    createBalanceLabel();
     createStackedWidget();
     createButtons();
 
     /* Connect functions to buttons */
-    connect(topBarButtons[2], SIGNAL(clicked()), SLOT(onExitButtonClicked()));
+    connect(topBarButtons[1], &QPushButton::clicked,
+            this, &TopBarAndStackedWidget::setSignInPage);
+    connect(topBarButtons[2], &QPushButton::clicked,
+            this, &TopBarAndStackedWidget::onExitButtonClicked);
 
     /* Add widgets to layouts */
     rightWidgetLayout->addWidget(topBarWidget);
@@ -36,8 +40,11 @@ TopBarAndStackedWidget::TopBarAndStackedWidget(QWidget *parent) : QWidget(parent
             this, SLOT(setHomePage()));
     connect(sideBarWidget, SIGNAL(buyPageClicked()),
             this, SLOT(setBuyPage()));
+    connect(sideBarWidget, SIGNAL(sellPageClicked()),
+            this, SLOT(setSellPage()));
 
     stackedWidget->setCurrentIndex(0);
+    createShadows();
 }
 
 QNetworkAccessManager *TopBarAndStackedWidget::getNetworkManager()
@@ -52,22 +59,27 @@ void TopBarAndStackedWidget::onExitButtonClicked()
 
 void TopBarAndStackedWidget::setSignUpPage()
 {
-    stackedWidget->setCurrentIndex(1);
+    stackedWidget->setCurrentWidget(signUpPage);
 }
 
 void TopBarAndStackedWidget::setSignInPage()
 {
-    stackedWidget->setCurrentIndex(0);
+    stackedWidget->setCurrentWidget(signInPage);
 }
 
 void TopBarAndStackedWidget::setHomePage()
 {
-    stackedWidget->setCurrentIndex(2);
+    stackedWidget->setCurrentWidget(homePage);
 }
 
 void TopBarAndStackedWidget::setBuyPage()
 {
-    stackedWidget->setCurrentIndex(3);
+    stackedWidget->setCurrentWidget(buyPage);
+}
+
+void TopBarAndStackedWidget::setSellPage()
+{
+    stackedWidget->setCurrentWidget(sellPage);
 }
 
 void TopBarAndStackedWidget::createLayouts()
@@ -82,7 +94,7 @@ void TopBarAndStackedWidget::createLayouts()
 
     topBarLayout = new QHBoxLayout(topBarWidget);
     topBarLayout->setSpacing(26);
-    topBarLayout->setContentsMargins(954, 12, 26, 12);
+    topBarLayout->setContentsMargins(712, 12, 26, 12);
 }
 
 void TopBarAndStackedWidget::createStackedWidget()
@@ -96,11 +108,13 @@ void TopBarAndStackedWidget::createStackedWidget()
     signUpPage = new SignUpWidget(stackedWidget);
     homePage = new HomePageWidget(stackedWidget);
     buyPage = new BuyWidget(stackedWidget);
+    sellPage = new SellWidget(stackedWidget);
 
     stackedWidget->addWidget(signInPage);
     stackedWidget->addWidget(signUpPage);
     stackedWidget->addWidget(homePage);
     stackedWidget->addWidget(buyPage);
+    stackedWidget->addWidget(sellPage);
 }
 
 void TopBarAndStackedWidget::createButtons()
@@ -110,9 +124,46 @@ void TopBarAndStackedWidget::createButtons()
         topBarButtons[i] = new QPushButton(topBarWidget);
         topBarButtons[i]->setFixedSize(button_size, button_size);
         topBarButtons[i]->setStyleSheet("background-color:" + buttonColours[i] + ";"
-                                          "border-radius: 15px");
+                                        "border-radius: 15px;"
+                                        "border: 2px solid #000000");
         QString icon_path = iconsDir.absolutePath() + "/" + iconsNames[i];
         topBarButtons[i]->setIcon(QIcon(icon_path));
         topBarButtons[i]->setIconSize(QSize(icon_size, icon_size));
+    }
+}
+
+void TopBarAndStackedWidget::createBalanceLabel()
+{
+    accountBalance = new QLabel("0 $", this);
+    accountBalance->setFixedSize(216, 56);
+    accountBalance->setStyleSheet("border-radius: 10px;"
+                                  "border: 2px solid #000000;"
+                                  "background-color: #C4C4C4;"
+                                  "font-weight: bold;"
+                                  "font-size: 16px");
+    accountBalance->setAlignment(Qt::AlignCenter);
+    accountBalance->setFont(QFont("Lato"));
+
+    topBarLayout->addWidget(accountBalance);
+}
+
+void TopBarAndStackedWidget::createShadows()
+{
+    QGraphicsDropShadowEffect *labelShadow = new QGraphicsDropShadowEffect(this);
+    labelShadow->setBlurRadius(5);
+    /* 0.25 * 255 ~ 64 */
+    labelShadow->setColor(QColor(0, 0, 0, 64));
+    labelShadow->setOffset(2, 2);
+    accountBalance->setGraphicsEffect(labelShadow);
+
+    QGraphicsDropShadowEffect *buttonShadows[3];
+
+    for (int i = 0; i < 3; ++i) {
+        buttonShadows[i] = new QGraphicsDropShadowEffect(this);
+        buttonShadows[i]->setBlurRadius(5);
+        /* 0.25 * 255 ~ 64 */
+        buttonShadows[i]->setColor(QColor(0, 0, 0, 64));
+        buttonShadows[i]->setOffset(2, 2);
+        topBarButtons[i]->setGraphicsEffect(buttonShadows[i]);
     }
 }

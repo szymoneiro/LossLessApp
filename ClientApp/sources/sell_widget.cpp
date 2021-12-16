@@ -3,7 +3,7 @@
 #include "../headers/main_widget.h"
 #include <QNetworkReply>
 
-BuyWidget::BuyWidget(QWidget *parent) : QWidget(parent)
+SellWidget::SellWidget(QWidget *parent) : QWidget(parent)
 {
     this->setFixedSize(1200, 640);
     this->setStyleSheet("background-color: #FAFAFA");
@@ -18,22 +18,19 @@ BuyWidget::BuyWidget(QWidget *parent) : QWidget(parent)
     MainWidget *parentWidget = qobject_cast<MainWidget*>(this->parent()->parent()->parent());
     QHBoxLayout *parentLayout = qobject_cast<QHBoxLayout*>(parentWidget->layout());
     sidebarWidget = qobject_cast<LogoAndSideBarWidget*>(parentLayout->itemAt(0)->widget());
-    connect(sidebarWidget, SIGNAL(buyPageClicked()),
-            this, SLOT(buyButtonClicked()));
 
-    signInWidget = qobject_cast<SignInWidget*>(this->parent()->children()[1]);
-    connect(signInWidget, SIGNAL(userLoggedIn()),
-            this, SLOT(setUserBalance()));
+    connect(sidebarWidget, SIGNAL(sellPageClicked()),
+            this, SLOT(sellButtonClicked()));
 
     connect(tabButtons[0], &QPushButton::clicked,
-            this, &BuyWidget::onCryptocurrenciesTabClick);
+            this, &SellWidget::onCryptocurrenciesTabClick);
     connect(tabButtons[1], &QPushButton::clicked,
-            this, &BuyWidget::onCurrenciesTabClick);
+            this, &SellWidget::onCurrenciesTabClick);
     connect(tabButtons[2], &QPushButton::clicked,
-            this, &BuyWidget::onStocksTabClick);
+            this, &SellWidget::onStocksTabClick);
 }
 
-void BuyWidget::scrollAreaCreate()
+void SellWidget::scrollAreaCreate()
 {
     scrollArea = new QScrollArea(this);
     scrollWidget = new QWidget(scrollArea);
@@ -70,7 +67,7 @@ void BuyWidget::scrollAreaCreate()
                               "border: 3px solid #000000");
 }
 
-void BuyWidget::buttonsCreate()
+void SellWidget::buttonsCreate()
 {
     const int button_width = 150;
     const int button_height = 46;
@@ -97,17 +94,17 @@ void BuyWidget::buttonsCreate()
     }
 }
 
-void BuyWidget::obtainServerRecords(recordType type)
+void SellWidget::obtainUserPurchases(recordType type)
 {
     QNetworkRequest recordsRequest;
     if (type == recordType::cryptoRecord) {
-        recordsRequest.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies"));
+        recordsRequest.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies/records"));
     }
     else if (type == recordType::currencyRecord) {
-        recordsRequest.setUrl(QUrl("http://127.0.0.1:5000/currencies"));
+        recordsRequest.setUrl(QUrl("http://127.0.0.1:5000/currencies/records"));
     }
     else {
-        recordsRequest.setUrl(QUrl("http://127.0.0.1:5000/stocks"));
+        recordsRequest.setUrl(QUrl("http://127.0.0.1:5000/stocks/records"));
     }
 
     recordsRequest.setRawHeader(QByteArray("x-access-token"), accessToken->toUtf8());
@@ -137,9 +134,67 @@ void BuyWidget::obtainServerRecords(recordType type)
     }
 
     QJsonDocument recordsReplyJson = QJsonDocument::fromJson(recordsReply->readAll());
-    QJsonArray recordsArray = recordsReplyJson.array();
+    int index = 0;
+    QVector<int> uniqueRecordsIds;
+    QMap<int, double> recordsQuantities;
+    while (recordsReplyJson[index] != QJsonValue::Undefined) {
+        int record_id = recordsReplyJson[index].toObject()["record_id"].toInt();
+        recordsQuantities[record_id] = recordsQuantities[record_id] + recordsReplyJson[index].toObject()["quantity"].toDouble();
+        if (!uniqueRecordsIds.contains(record_id)) {
+            uniqueRecordsIds.append(record_id);
+        }
+        index++;
+    }
 
-    for (int i = 0; i < recordsArray.size(); ++i) {
+    QNetworkRequest recordsValuesRequest;
+    if (type == recordType::cryptoRecord) {
+        recordsValuesRequest.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies"));
+    }
+    else if (type == recordType::currencyRecord) {
+         recordsValuesRequest.setUrl(QUrl("http://127.0.0.1:5000/currencies"));
+    }
+    else {
+         recordsValuesRequest.setUrl(QUrl("http://127.0.0.1:5000/stocks"));
+    }
+
+    recordsValuesRequest.setRawHeader(QByteArray("x-access-token"), accessToken->toUtf8());
+    recordsValuesRequest.setHeader(QNetworkRequest::ContentTypeHeader,
+                                  QVariant("application/x-www-form-urlencoded"));
+    QNetworkReply *recordsValuesReply = this->connectionManager->get(recordsValuesRequest);
+
+    /* Wait for the server response */
+    QEventLoop singleConnectionLoop;
+    connect(recordsValuesReply, &QNetworkReply::finished,
+            &singleConnectionLoop, &QEventLoop::quit);
+    singleConnectionLoop.exec();
+
+    /* In case we get an error from the server */
+    if (recordsValuesReply->error()) {
+        if (recordsValuesReply->error() == QNetworkReply::ConnectionRefusedError) {
+            qDebug() << "There you should implement displaying server/invalid token error!";
+        }
+        else {
+            QJsonDocument recordsReplyError = QJsonDocument::fromJson(
+                        recordsValuesReply->readAll());
+            qDebug() << recordsReplyError["message"].toString();
+            recordsValuesReply->deleteLater();
+        }
+        return;
+    }
+
+    QJsonDocument recordsValuesJson = QJsonDocument::fromJson(recordsValuesReply->readAll());
+    QJsonArray recordsArray = recordsValuesJson.array();
+
+    for (int i = 0; i < uniqueRecordsIds.size(); ++i) {
+
+        /* Check if current record quantity is equal 0,
+         * it's a case when user made some transactions, but now he has 0 quantity of certain record
+         * so there's no point of displaying that record. */
+
+        if (recordsQuantities[uniqueRecordsIds[i]] == 0.0) {
+            continue;
+        }
+
         QWidget *currentRecord = new QWidget(this);
         QHBoxLayout *currentRecordLayout = new QHBoxLayout(currentRecord);
         currentRecordLayout->setSpacing(0);
@@ -156,7 +211,17 @@ void BuyWidget::obtainServerRecords(recordType type)
                                    "border-bottom: 3px solid #A7A7A7;"
                                    "font-size: 18px";
 
-        QLabel *recordName = new QLabel(recordsArray.at(i)["name"].toString(), currentRecord);
+        double currentSellPrice = 0;
+        QString currentRecordName = "BITICOIN_XD";
+        for (int j = 0; j < recordsArray.size(); ++j) {
+            if (recordsArray.at(j)["id"].toInt() == uniqueRecordsIds[i]) {
+                currentSellPrice = recordsArray.at(j)["value"].toDouble();
+                currentRecordName = recordsArray.at(j)["name"].toString();
+                break;
+            }
+        }
+
+        QLabel *recordName = new QLabel(currentRecordName, currentRecord);
         recordName->setFixedSize(357, 48);
         recordName->setStyleSheet("background-color: #EAEAEA;"
                                   "border: 3px solid #A7A7A7;"
@@ -165,41 +230,43 @@ void BuyWidget::obtainServerRecords(recordType type)
         recordName->setFont(QFont("Lato"));
         recordName->setAlignment(Qt::AlignCenter);
 
-        QLabel *recordPrice = new QLabel(QString::number(recordsArray.at(i)["value"].toDouble(), 'g', 12), currentRecord);
+
+        QLabel *recordPrice = new QLabel(QString::number(currentSellPrice, 'g', 12), currentRecord);
         recordPrice->setFixedSize(357, 48);
         recordPrice->setStyleSheet(recordStyleSheet);
         recordPrice->setFont(QFont("Lato"));
         recordPrice->setAlignment(Qt::AlignCenter);
 
-        QLineEdit *recordQuantity = new QLineEdit(currentRecord);
+        QLineEdit *recordQuantity = new QLineEdit(QString::number(recordsQuantities[uniqueRecordsIds[i]], 'g', 12), currentRecord);
         recordQuantity->setFixedSize(357, 48);
         recordQuantity->setStyleSheet(recordStyleSheet);
         recordQuantity->setFont(QFont("Lato"));
         recordQuantity->setAlignment(Qt::AlignCenter);
-        QDoubleValidator *inputValidator = new QDoubleValidator(0, double(1'000'000'000), 17, recordQuantity);
+
+        QDoubleValidator *inputValidator = new QDoubleValidator(0, recordsQuantities[uniqueRecordsIds[i]], 12, recordQuantity);
         inputValidator->setNotation(QDoubleValidator::StandardNotation);
         recordQuantity->setValidator(inputValidator);
 
-        QPushButton *buyButton = new QPushButton(currentRecord);
-        buyButton->setFixedSize(36, 36);
-        buyButton->setStyleSheet(recordStyleSheet);
+        QPushButton *sellButton = new QPushButton(currentRecord);
+        sellButton->setFixedSize(36, 36);
+        sellButton->setStyleSheet(recordStyleSheet);
         QDir iconDir;
         iconDir.setPath("../ClientApp/icons");
-        QString icon_path = iconDir.absolutePath() + "/" + "shop_icon";
-        buyButton->setIcon(QIcon(icon_path));
-        buyButton->setIconSize(QSize(22, 22));
+        QString icon_path = iconDir.absolutePath() + "/" + "basket_icon";
+        sellButton->setIcon(QIcon(icon_path));
+        sellButton->setIconSize(QSize(22, 22));
 
         if (type == recordType::cryptoRecord) {
-            connect(buyButton, &QPushButton::clicked,
-                    this, &BuyWidget::buyCrypto);
+            connect(sellButton, &QPushButton::clicked,
+                    this, &SellWidget::sellCrypto);
         }
         else if (type == recordType::currencyRecord) {
-            connect(buyButton, &QPushButton::clicked,
-                    this, &BuyWidget::buyCurrency);
+            connect(sellButton, &QPushButton::clicked,
+                    this, &SellWidget::sellCurrency);
         }
         else {
-            connect(buyButton, &QPushButton::clicked,
-                    this, &BuyWidget::buyStock);
+            connect(sellButton, &QPushButton::clicked,
+                    this, &SellWidget::sellStock);
         }
 
         scrollLayout->addWidget(currentRecord);
@@ -207,30 +274,51 @@ void BuyWidget::obtainServerRecords(recordType type)
         currentRecordLayout->addWidget(recordName);
         currentRecordLayout->addWidget(recordPrice);
         currentRecordLayout->addWidget(recordQuantity);
-        currentRecordLayout->addWidget(buyButton);
+        currentRecordLayout->addWidget(sellButton);
     }
 
     recordsReply->deleteLater();
+    recordsValuesReply->deleteLater();
 }
 
-void BuyWidget::buyRecord(recordType type)
+void SellWidget::sellRecord(recordType type)
 {
-    QNetworkRequest requestUrl;
+    QWidget *recordParentWidget = qobject_cast<QWidget*>(QObject::sender()->parent());
+    QHBoxLayout *recordParentLayout = qobject_cast<QHBoxLayout*>(recordParentWidget->layout());
+
+    QLabel *recordName = qobject_cast<QLabel*>(recordParentLayout->itemAt(0)->widget());
+    QLabel *recordPrice = qobject_cast<QLabel*>(recordParentLayout->itemAt(1)->widget());
+    QLineEdit *recordQuantity = qobject_cast<QLineEdit*>(recordParentLayout->itemAt(2)->widget());
+    const QDoubleValidator *recordValidator = qobject_cast<const QDoubleValidator*>(recordQuantity->validator());
+
+    int position;
+    QString recordQuantityText = recordQuantity->text();
+    if (recordValidator->validate(recordQuantityText, position) == QValidator::Intermediate || QValidator::Invalid) {
+        QMessageBox wrongQuantityBox;
+        wrongQuantityBox.setText("Plese insert correct quantity! Maximum quanity for sell is: " + QString::number(recordValidator->top(), 'g', 12));
+        wrongQuantityBox.setStandardButtons(QMessageBox::Ok);
+        wrongQuantityBox.setDefaultButton(QMessageBox::Ok);
+        wrongQuantityBox.setIcon(QMessageBox::Critical);
+        wrongQuantityBox.exec();
+        return;
+    }
+    /* Get record ID by its name */
+    QNetworkRequest recordsUrl;
     if (type == recordType::cryptoRecord) {
-        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies"));
+        recordsUrl.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies"));
     }
     else if (type == recordType::currencyRecord) {
-        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/currencies"));
+        recordsUrl.setUrl(QUrl("http://127.0.0.1:5000/currencies"));
     }
     else {
-        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/stocks"));
+        recordsUrl.setUrl(QUrl("http://127.0.0.1:5000/stocks"));
     }
 
-    requestUrl.setRawHeader(QByteArray("x-access-token"), accessToken->toUtf8());
-    requestUrl.setHeader(QNetworkRequest::ContentTypeHeader,
+    recordsUrl.setRawHeader(QByteArray("x-access-token"), accessToken->toUtf8());
+    recordsUrl.setHeader(QNetworkRequest::ContentTypeHeader,
                       QVariant("application/x-www-form-urlencoded"));
 
-    QNetworkReply *recordsReply = this->connectionManager->get(requestUrl);
+    QNetworkReply *recordsReply = this->connectionManager->get(recordsUrl);
 
     /* Wait for the server response */
     QEventLoop connectionLoop;
@@ -251,59 +339,47 @@ void BuyWidget::buyRecord(recordType type)
         }
         return;
     }
-
-    QWidget *recordParentWidget = qobject_cast<QWidget*>(QObject::sender()->parent());
-    QHBoxLayout *recordParentLayout = qobject_cast<QHBoxLayout*>(recordParentWidget->layout());
-
+    QString recordNameString = recordName->text();
     int recordId = 0;
-    QLabel *recordName = qobject_cast<QLabel*>(recordParentLayout->itemAt(0)->widget());
-    QLabel *recordPrice = qobject_cast<QLabel*>(recordParentLayout->itemAt(1)->widget());
-    QLineEdit *recordQuantity = qobject_cast<QLineEdit*>(recordParentLayout->itemAt(2)->widget());
 
-    QString name = recordName->text();
-    double buyPrice = recordPrice->text().toDouble();
-    double buyQuantity = recordQuantity->text().toDouble();
-
-    QJsonDocument recordsReplyJson = QJsonDocument::fromJson(recordsReply->readAll());
-    QJsonArray recordsArray = recordsReplyJson.array();
+    QJsonDocument recordsJson = QJsonDocument::fromJson(recordsReply->readAll());
+    QJsonArray recordsArray = recordsJson.array();
     for (int i = 0; i < recordsArray.size(); ++i) {
-        if (recordsArray.at(i)["name"].toString() == name) {
-            recordId = recordsArray.at(i)["id"].toDouble();
+        if (recordsArray.at(i)["name"].toString() == recordNameString) {
+            recordId = recordsArray.at(i)["id"].toInt();
             break;
         }
     }
+
     recordsReply->deleteLater();
 
+    /* Sell record */
+
+    QNetworkRequest sellRequestUrl;
     if (type == recordType::cryptoRecord) {
-        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies/buy"));
+        sellRequestUrl.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies/sell"));
     }
     else if (type == recordType::currencyRecord) {
-        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/currencies/buy"));
+        sellRequestUrl.setUrl(QUrl("http://127.0.0.1:5000/currencies/sell"));
     }
     else {
-        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/stocks/buy"));
+        sellRequestUrl.setUrl(QUrl("http://127.0.0.1:5000/stocks/sell"));
     }
 
+    sellRequestUrl.setRawHeader(QByteArray("x-access-token"), accessToken->toUtf8());
+    sellRequestUrl.setHeader(QNetworkRequest::ContentTypeHeader,
+                      QVariant("application/x-www-form-urlencoded"));
+
+    QString recordPriceText = recordPrice->text();
     QUrlQuery query;
     query.addQueryItem("record_id", QString::number(recordId));
-    query.addQueryItem("buy_price", QString::number(buyPrice, 'g', 12));
-    query.addQueryItem("quantity", QString::number(buyQuantity, 'g', 12));
+    query.addQueryItem("buy_price", recordPriceText);
+    query.addQueryItem("quantity", recordQuantityText);
 
     QByteArray postData;
     postData = query.toString(QUrl::FullyEncoded).toUtf8();
 
-    double transactionCost = buyQuantity * buyPrice;
-    QString balanceWithoutDolarSign = accountBalance->text().left(accountBalance->text().length() - 2);
-    if (transactionCost > balanceWithoutDolarSign.toDouble()) {
-        QMessageBox insufficientBalanceBox;
-        insufficientBalanceBox.setText("Insufficient account balance: Transaction cost: " +
-                                                  QString::number(transactionCost, 'f', 2) + " $");
-        insufficientBalanceBox.setStandardButtons(QMessageBox::Ok);
-        insufficientBalanceBox.setDefaultButton(QMessageBox::Ok);
-        insufficientBalanceBox.setIcon(QMessageBox::Critical);
-        insufficientBalanceBox.exec();
-        return;
-    }
+    double transactionCost = recordQuantityText.toDouble() * recordPriceText.toDouble();
     if (transactionCost < 0.01) {
         QMessageBox wrongQuantityBox;
         wrongQuantityBox.setText("Plese insert correct quantity! Minimum transaction value is 0.01$");
@@ -315,13 +391,12 @@ void BuyWidget::buyRecord(recordType type)
     }
 
     QMessageBox confirmTransactionBox;
-    confirmTransactionBox.setText("Are you sure you want to buy " +
-                                  QString::number(buyQuantity, 'g', 12) +
-                                  " " + name +
-                                  " for " + QString::number(buyPrice, 'g', 12) + "$ each?");
-    /* Check if buying ammount is bigger than 0! */
-    /* For example buying 0.0001 TRON is free! */
-    confirmTransactionBox.setInformativeText("That will cost you: " + QString::number(transactionCost, 'f', 2) + "$");
+    confirmTransactionBox.setText("Are you sure you want to sell " + recordQuantityText +
+                                  " " + recordNameString +
+                                  " for " + recordPriceText + "$ each?");
+
+    confirmTransactionBox.setInformativeText("Your balance will increase by: " +
+                                             QString::number(recordQuantityText.toDouble() * recordPriceText.toDouble(), 'f', 2) + "$");
     confirmTransactionBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
     confirmTransactionBox.setDefaultButton(QMessageBox::Yes);
     confirmTransactionBox.setIcon(QMessageBox::Question);
@@ -330,37 +405,48 @@ void BuyWidget::buyRecord(recordType type)
     if (userDecision == QMessageBox::No) {
         return;
     }
-    recordQuantity->setText("");
 
-    QNetworkReply *buyReply = this->connectionManager->post(requestUrl, postData);
+    QNetworkReply *sellReply = this->connectionManager->post(sellRequestUrl, postData);
 
     /* Wait for the server response */
-    connect(buyReply, &QNetworkReply::finished,
+    connect(sellReply, &QNetworkReply::finished,
             &connectionLoop, &QEventLoop::quit);
     connectionLoop.exec();
 
     /* In case we get an error from the server */
-    if (buyReply->error()) {
-        if (buyReply->error() == QNetworkReply::ConnectionRefusedError) {
+    if (sellReply->error()) {
+        if (sellReply->error() == QNetworkReply::ConnectionRefusedError) {
             qDebug() << "There you should implement displaying server/invalid token error!";
         }
         else {
             QJsonDocument recordsReplyError = QJsonDocument::fromJson(
-                        buyReply->readAll());
+                        sellReply->readAll());
             qDebug() << recordsReplyError["message"].toString();
-            buyReply->deleteLater();
+            sellReply->deleteLater();
         }
         return;
     }
 
-    qDebug() << buyReply->readAll();
-    buyReply->deleteLater();
+    qDebug() << sellReply->readAll();
+    sellReply->deleteLater();
 
     /* Update balance label */
-    accountBalance->setText(QString::number(balanceWithoutDolarSign.toDouble() - transactionCost, 'f', 2) + " $");
+    QString balanceWithoutDolarSign = accountBalance->text().left(accountBalance->text().length() - 2);
+    accountBalance->setText(QString::number(balanceWithoutDolarSign.toDouble() + transactionCost, 'f', 2) + " $");
+
+
+    if (type == recordType::cryptoRecord) {
+        onCryptocurrenciesTabClick();
+    }
+    else if (type == recordType::currencyRecord) {
+        onCurrenciesTabClick();
+    }
+    else {
+        onStocksTabClick();
+    }
 }
 
-void BuyWidget::setActiveButton(recordType type)
+void SellWidget::setActiveButton(recordType type)
 {
     QStringList colours;
     if (type == recordType::cryptoRecord) {
@@ -393,7 +479,7 @@ void BuyWidget::setActiveButton(recordType type)
     }
 }
 
-void BuyWidget::clearScrollLayout()
+void SellWidget::clearScrollLayout()
 {
     QLayoutItem *child;
     QVBoxLayout *layoutToClear = this->scrollLayout;
@@ -403,79 +489,46 @@ void BuyWidget::clearScrollLayout()
     }
 }
 
-void BuyWidget::buyCrypto()
+void SellWidget::sellCrypto()
 {
-    buyRecord(recordType::cryptoRecord);
+    sellRecord(recordType::cryptoRecord);
 }
 
-void BuyWidget::buyCurrency()
+void SellWidget::sellCurrency()
 {
-    buyRecord(recordType::currencyRecord);
+    sellRecord(recordType::currencyRecord);
 }
 
-void BuyWidget::buyStock()
+void SellWidget::sellStock()
 {
-    buyRecord(recordType::stockRecord);
+    sellRecord(recordType::stockRecord);
 }
 
-void BuyWidget::buyButtonClicked()
-{
-    clearScrollLayout();
-    setActiveButton(recordType::cryptoRecord);
-    obtainServerRecords(recordType::cryptoRecord);
-}
-
-void BuyWidget::onCryptocurrenciesTabClick()
+void SellWidget::sellButtonClicked()
 {
     clearScrollLayout();
     setActiveButton(recordType::cryptoRecord);
-    obtainServerRecords(recordType::cryptoRecord);
+    obtainUserPurchases(recordType::cryptoRecord);
 }
 
-void BuyWidget::onCurrenciesTabClick()
+void SellWidget::onCryptocurrenciesTabClick()
+{
+    clearScrollLayout();
+    setActiveButton(recordType::cryptoRecord);
+    obtainUserPurchases(recordType::cryptoRecord);
+}
+
+void SellWidget::onCurrenciesTabClick()
 {
     clearScrollLayout();
     setActiveButton(recordType::currencyRecord);
-    obtainServerRecords(recordType::currencyRecord);
+    obtainUserPurchases(recordType::currencyRecord);
 }
 
-void BuyWidget::onStocksTabClick()
+void SellWidget::onStocksTabClick()
 {
     clearScrollLayout();
     setActiveButton(recordType::stockRecord);
-    obtainServerRecords(recordType::stockRecord);
+    obtainUserPurchases(recordType::stockRecord);
 }
 
-void BuyWidget::setUserBalance()
-{
-    QNetworkRequest balanceUrl(QUrl("http://127.0.0.1:5000/balance"));
-    balanceUrl.setRawHeader(QByteArray("x-access-token"), accessToken->toUtf8());
-    balanceUrl.setHeader(QNetworkRequest::ContentTypeHeader,
-                      QVariant("application/x-www-form-urlencoded"));
-
-    QNetworkReply *balanceReply = this->connectionManager->get(balanceUrl);
-
-    /* Wait for the server response */
-    QEventLoop connectionLoop;
-    connect(balanceReply, &QNetworkReply::finished,
-            &connectionLoop, &QEventLoop::quit);
-    connectionLoop.exec();
-
-    /* In case we get an error from the server */
-    if (balanceReply->error()) {
-        if (balanceReply->error() == QNetworkReply::ConnectionRefusedError) {
-            qDebug() << "There you should implement displaying server/invalid token error!";
-        }
-        else {
-            QJsonDocument replyError = QJsonDocument::fromJson(
-                        balanceReply->readAll());
-            qDebug() << replyError["message"].toString();
-            balanceReply->deleteLater();
-        }
-        return;
-    }
-    QJsonDocument balanceReplyJson = QJsonDocument::fromJson(balanceReply->readAll());
-    accountBalance->setText(QString::number(balanceReplyJson.object()["balance"].toDouble(), 'f', 2) + " $");
-
-    balanceReply->deleteLater();
-}

@@ -4,6 +4,7 @@
 #include <QtWidgets>
 #include <QNetworkAccessManager>
 #include "../headers/logo_and_side_bar_widget.h"
+#include "../headers/sign_in_widget.h"
 
 class BuyWidget : public QWidget
 {
@@ -36,6 +37,9 @@ private:
 
     LogoAndSideBarWidget *sidebarWidget;
 
+    SignInWidget *signInWidget;
+    QLabel *accountBalance;
+
     QNetworkAccessManager *connectionManager;
     QString *accessToken;
 
@@ -54,6 +58,7 @@ private slots:
     void onCryptocurrenciesTabClick();
     void onCurrenciesTabClick();
     void onStocksTabClick();
+    void setUserBalance();
 };
 
 #endif // BUY_WIDGET_H

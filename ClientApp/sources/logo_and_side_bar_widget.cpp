@@ -6,6 +6,7 @@ LogoAndSideBarWidget::LogoAndSideBarWidget(QWidget *parent) : QWidget(parent)
     createLayouts();
     createLogoBar();
     createButtons();
+    createShadows();
 
     iconWidgetLayout->addWidget(logoWidget);
     iconWidgetLayout->addWidget(sideBarWidget);
@@ -19,6 +20,9 @@ LogoAndSideBarWidget::LogoAndSideBarWidget(QWidget *parent) : QWidget(parent)
 
     connect(sideBarButtons[2], &QPushButton::clicked,
             this, &LogoAndSideBarWidget::onBuyPageButtonClicked);
+
+    connect(sideBarButtons[3], &QPushButton::clicked,
+            this, &LogoAndSideBarWidget::onSellPageButtonClicked);
 }
 
 void LogoAndSideBarWidget::createLayouts()
@@ -58,10 +62,24 @@ void LogoAndSideBarWidget::createButtons()
         sideBarButtons[i] = new QPushButton(sideBarWidget);
         sideBarButtons[i]->setFixedSize(button_size, button_size);
         sideBarButtons[i]->setStyleSheet("background-color: white;"
-                                  "border-radius: 15px");
+                                         "border-radius: 15px;"
+                                         "border: 2px solid #000000");
         QString icon_path = iconsDir.absolutePath() + "/" + iconsNames[i];
         sideBarButtons[i]->setIcon(QIcon(icon_path));
         sideBarButtons[i]->setIconSize(QSize(icon_size, icon_size));
+    }
+}
+
+void LogoAndSideBarWidget::createShadows()
+{
+    QGraphicsDropShadowEffect *buttonShadows[4];
+    for (int i = 0; i < 4; ++i) {
+        buttonShadows[i] = new QGraphicsDropShadowEffect(this);
+        buttonShadows[i]->setBlurRadius(5);
+        /* 0.25 * 255 ~ 64 */
+        buttonShadows[i]->setColor(QColor(0, 0, 0, 64));
+        buttonShadows[i]->setOffset(2, 2);
+        sideBarButtons[i]->setGraphicsEffect(buttonShadows[i]);
     }
 }
 
@@ -73,4 +91,9 @@ void LogoAndSideBarWidget::onHomePageButtonClicked()
 void LogoAndSideBarWidget::onBuyPageButtonClicked()
 {
     emit buyPageClicked();
+}
+
+void LogoAndSideBarWidget::onSellPageButtonClicked()
+{
+    emit sellPageClicked();
 }

@@ -4,6 +4,7 @@
 /losslessapp_api/secret_key.txt
 /losslessapp_api/API_update_key.txt
 /losslessapp_api/freecurrencyapi_key.txt
+/losslessapp_api/stock_key.txt
 
 # Databases
 /losslessapp_api/cryptocurrencies.db

@@ -94,8 +94,8 @@ void SignInWidget::signUpBoxCreate()
     signUpBox = new QWidget(this);
     signUpBox->setGeometry(307, 350, 585, 190);
     signUpBox->setStyleSheet("background-color: #00FFA3;"
-                                "border-radius: 10px;"
-                                "border: 3px solid #000000");
+                             "border-radius: 10px;"
+                             "border: 3px solid #000000");
 }
 
 void SignInWidget::signInBoxCreate()
@@ -103,7 +103,7 @@ void SignInWidget::signInBoxCreate()
     signInBox = new QWidget(this);
     signInBox->setGeometry(275, 85, 650, 380);
     signInBox->setStyleSheet("background-color: #4C3099;"
-                                "border-radius: 10px;"
+                             "border-radius: 10px;"
                              "border: 3px solid #000000");
 }
 
@@ -131,10 +131,10 @@ void SignInWidget::labelsCreate()
     tipLabel = new QLabel(this);
     tipLabel->setText("Don't have an account?");
     tipLabel->setStyleSheet("color: #000000;"
-                               "font: bold;"
-                               "background-color: rgba(0,0,0,0%);"
-                               "font-size: 20px;"
-                               "border: 0px");
+                            "font: bold;"
+                            "background-color: rgba(0,0,0,0%);"
+                            "font-size: 20px;"
+                            "border: 0px");
     tipLabel->setGeometry(396, 479, 250, 40);
 
     for (int i = 0; i < 2; ++i){
