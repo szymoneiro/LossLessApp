@@ -3,6 +3,7 @@
 
 #include <QtWidgets>
 #include <QNetworkAccessManager>
+#include "../headers/logo_and_side_bar_widget.h"
 
 class BuyWidget : public QWidget
 {
@@ -32,17 +33,27 @@ private:
         "Currencies",
         "Stocks"
     };
-    QString *accessToken;
 
+    LogoAndSideBarWidget *sidebarWidget;
 
     QNetworkAccessManager *connectionManager;
+    QString *accessToken;
 
     void scrollAreaCreate();
     void buttonsCreate();
     void obtainServerRecords(recordType type);
+    void buyRecord(recordType type);
+    void setActiveButton(recordType type);
+    void clearScrollLayout();
 
 private slots:
     void buyCrypto();
+    void buyCurrency();
+    void buyStock();
+    void buyButtonClicked();
+    void onCryptocurrenciesTabClick();
+    void onCurrenciesTabClick();
+    void onStocksTabClick();
 };
 
 #endif // BUY_WIDGET_H

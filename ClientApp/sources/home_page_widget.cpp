@@ -1,6 +1,7 @@
 #include "../headers/home_page_widget.h"
 #include "../headers/sign_in_widget.h"
 #include "../headers/top_bar_and_stacked_widget.h"
+#include "../headers/main_widget.h"
 #include <QNetworkReply>
 
 HomePageWidget::HomePageWidget(QWidget *parent) : QWidget(parent)
@@ -12,6 +13,14 @@ HomePageWidget::HomePageWidget(QWidget *parent) : QWidget(parent)
 
     buttonsCreate();
     scrollAreaCreate();
+
+    /* Create connection between buying widget and sidebar which emit signal to switch between widgets. */
+    MainWidget *parentWidget = qobject_cast<MainWidget*>(this->parent()->parent()->parent());
+    QHBoxLayout *parentLayout = qobject_cast<QHBoxLayout*>(parentWidget->layout());
+    sidebarWidget = qobject_cast<LogoAndSideBarWidget*>(parentLayout->itemAt(0)->widget());
+
+    connect(sidebarWidget, SIGNAL(homePageClicked()),
+            this, SLOT(homePage()));
 
     connect(tabButtons[0], &QPushButton::clicked,
             this, &HomePageWidget::onCryptocurrenciesTabClick);
@@ -322,4 +331,11 @@ void HomePageWidget::onStocksTabClick()
     scrollAreaLabels[0]->setText("Stock name");
     setActiveButton(recordType::stockRecord);
     obtainUserRecords(recordType::stockRecord);
+}
+
+void HomePageWidget::homePage()
+{
+    clearScrollLayout();
+    setActiveButton(recordType::cryptoRecord);
+    obtainUserRecords(recordType::cryptoRecord);
 }

@@ -1,5 +1,6 @@
 #include "../headers/buy_widget.h"
 #include "../headers/top_bar_and_stacked_widget.h"
+#include "../headers/main_widget.h"
 #include <QNetworkReply>
 
 BuyWidget::BuyWidget(QWidget *parent) : QWidget(parent)
@@ -11,6 +12,21 @@ BuyWidget::BuyWidget(QWidget *parent) : QWidget(parent)
 
     buttonsCreate();
     scrollAreaCreate();
+
+    /* Create connection between buying widget and sidebar which emit signal to switch between widgets. */
+    MainWidget *parentWidget = qobject_cast<MainWidget*>(this->parent()->parent()->parent());
+    QHBoxLayout *parentLayout = qobject_cast<QHBoxLayout*>(parentWidget->layout());
+    sidebarWidget = qobject_cast<LogoAndSideBarWidget*>(parentLayout->itemAt(0)->widget());
+
+    connect(sidebarWidget, SIGNAL(buyPageClicked()),
+            this, SLOT(buyButtonClicked()));
+
+    connect(tabButtons[0], &QPushButton::clicked,
+            this, &BuyWidget::onCryptocurrenciesTabClick);
+    connect(tabButtons[1], &QPushButton::clicked,
+            this, &BuyWidget::onCurrenciesTabClick);
+    connect(tabButtons[2], &QPushButton::clicked,
+            this, &BuyWidget::onStocksTabClick);
 }
 
 void BuyWidget::scrollAreaCreate()
@@ -167,8 +183,18 @@ void BuyWidget::obtainServerRecords(recordType type)
         buyButton->setIcon(QIcon(icon_path));
         buyButton->setIconSize(QSize(22, 22));
 
-        connect(buyButton, &QPushButton::clicked,
-                this, &BuyWidget::buyCrypto);
+        if (type == recordType::cryptoRecord) {
+            connect(buyButton, &QPushButton::clicked,
+                    this, &BuyWidget::buyCrypto);
+        }
+        else if (type == recordType::currencyRecord) {
+            connect(buyButton, &QPushButton::clicked,
+                    this, &BuyWidget::buyCurrency);
+        }
+        else {
+            connect(buyButton, &QPushButton::clicked,
+                    this, &BuyWidget::buyStock);
+        }
 
         scrollLayout->addWidget(currentRecord);
 
@@ -181,13 +207,21 @@ void BuyWidget::obtainServerRecords(recordType type)
     recordsReply->deleteLater();
 }
 
-void BuyWidget::buyCrypto()
+void BuyWidget::buyRecord(recordType type)
 {
     QWidget *recordParentWidget = qobject_cast<QWidget*>(QObject::sender()->parent());
     QHBoxLayout *recordParentLayout = qobject_cast<QHBoxLayout*>(recordParentWidget->layout());
 
     QNetworkRequest requestUrl;
-    requestUrl.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies"));
+    if (type == recordType::cryptoRecord) {
+        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies"));
+    }
+    else if (type == recordType::currencyRecord) {
+        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/currencies"));
+    }
+    else {
+        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/stocks"));
+    }
 
     /* We travel from BuyWidget->StackedWidget->TopBarAndStackedWidget */
     requestUrl.setRawHeader(QByteArray("x-access-token"), accessToken->toUtf8());
@@ -235,7 +269,16 @@ void BuyWidget::buyCrypto()
     }
     recordsReply->deleteLater();
 
-    requestUrl.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies/buy"));
+    if (type == recordType::cryptoRecord) {
+        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/cryptocurrencies/buy"));
+    }
+    else if (type == recordType::currencyRecord) {
+        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/currencies/buy"));
+    }
+    else {
+        requestUrl.setUrl(QUrl("http://127.0.0.1:5000/stocks/buy"));
+    }
+
     QUrlQuery query;
     query.addQueryItem("record_id", QString::number(recordId));
     query.addQueryItem("buy_price", QString::number(buyPrice, 'g', 12));
@@ -285,3 +328,90 @@ void BuyWidget::buyCrypto()
     qDebug() << buyReply->readAll();
     buyReply->deleteLater();
 }
+
+void BuyWidget::setActiveButton(recordType type)
+{
+    QStringList colours;
+    if (type == recordType::cryptoRecord) {
+        colours = {
+            "00FFA3;",
+            "C8C8C8;",
+            "C8C8C8;"
+        };
+    }
+    else if (type == recordType::currencyRecord) {
+        colours = {
+            "C8C8C8;",
+            "00FFA3;",
+            "C8C8C8;"
+        };
+    }
+    else {
+        colours = {
+            "C8C8C8;",
+            "C8C8C8;",
+            "00FFA3;"
+        };
+    }
+    for (int i = 0; i < 3; ++i) {
+        tabButtons[i]->setStyleSheet("background-color: #" + colours[i] +
+                                     "border-radius: 10px;"
+                                     "border: 3px solid #000000;"
+                                     "font-weight: bold;"
+                                     "font-size: 14px");
+    }
+}
+
+void BuyWidget::clearScrollLayout()
+{
+    QLayoutItem *child;
+    QVBoxLayout *layoutToClear = this->scrollLayout;
+    while ((child = layoutToClear->takeAt(0)) != 0) {
+        delete child->widget();
+        delete child;
+    }
+}
+
+void BuyWidget::buyCrypto()
+{
+    buyRecord(recordType::cryptoRecord);
+}
+
+void BuyWidget::buyCurrency()
+{
+    buyRecord(recordType::currencyRecord);
+}
+
+void BuyWidget::buyStock()
+{
+    buyRecord(recordType::stockRecord);
+}
+
+void BuyWidget::buyButtonClicked()
+{
+    clearScrollLayout();
+    setActiveButton(recordType::cryptoRecord);
+    obtainServerRecords(recordType::cryptoRecord);
+}
+
+void BuyWidget::onCryptocurrenciesTabClick()
+{
+    clearScrollLayout();
+    setActiveButton(recordType::cryptoRecord);
+    obtainServerRecords(recordType::cryptoRecord);
+}
+
+void BuyWidget::onCurrenciesTabClick()
+{
+    clearScrollLayout();
+    setActiveButton(recordType::currencyRecord);
+    obtainServerRecords(recordType::currencyRecord);
+}
+
+void BuyWidget::onStocksTabClick()
+{
+    clearScrollLayout();
+    setActiveButton(recordType::stockRecord);
+    obtainServerRecords(recordType::stockRecord);
+}
+

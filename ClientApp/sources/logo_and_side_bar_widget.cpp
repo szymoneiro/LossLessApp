@@ -13,6 +13,12 @@ LogoAndSideBarWidget::LogoAndSideBarWidget(QWidget *parent) : QWidget(parent)
     sideBarWidget->setLayout(sideBarWidgetLayout);
     for (int i = 0; i < 4; ++i)
         sideBarWidgetLayout->addWidget(sideBarButtons[i]);
+
+    connect(sideBarButtons[0], &QPushButton::clicked,
+            this, &LogoAndSideBarWidget::onHomePageButtonClicked);
+
+    connect(sideBarButtons[2], &QPushButton::clicked,
+            this, &LogoAndSideBarWidget::onBuyPageButtonClicked);
 }
 
 void LogoAndSideBarWidget::createLayouts()

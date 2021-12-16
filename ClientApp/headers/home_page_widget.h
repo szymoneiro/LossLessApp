@@ -3,6 +3,7 @@
 
 #include <QtWidgets>
 #include <QNetworkAccessManager>
+#include "../headers/logo_and_side_bar_widget.h"
 
 class HomePageWidget : public QWidget
 {
@@ -35,6 +36,7 @@ private:
         "Buy price",
         "Current price"
     };
+    LogoAndSideBarWidget *sidebarWidget;
 
     QNetworkAccessManager *connectionManager;
     QString *accessToken;
@@ -49,6 +51,7 @@ private slots:
     void onCryptocurrenciesTabClick();
     void onCurrenciesTabClick();
     void onStocksTabClick();
+    void homePage();
 };
 
 #endif // HOME_PAGE_WIDGET_H

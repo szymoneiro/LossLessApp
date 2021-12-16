@@ -16,12 +16,10 @@ public:
     explicit TopBarAndStackedWidget(QWidget *parent = nullptr);
     QString x_access_token = "EXAMPLE-TOKEN-jdksaldkjsalkda";
     static QNetworkAccessManager* getNetworkManager();
-
 private slots:
     void onExitButtonClicked();
     void setSignUpPage();
     void setSignInPage();
-    void setMainPage();
     void setHomePage();
     void setBuyPage();
 
