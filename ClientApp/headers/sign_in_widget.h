@@ -1,56 +1,38 @@
 #ifndef SIGN_IN_WIDGET_H
 #define SIGN_IN_WIDGET_H
 
-#include <QtWidgets>
-#include <QNetworkAccessManager>
+#include "authentication_widget.h"
 
-class SignInWidget : public QWidget
+class SignInWidget : public AuthenticationWidget
 {
     Q_OBJECT
-public:
-    explicit SignInWidget(QWidget *parent = nullptr);
+private:
+    QVBoxLayout *signInBoxLayout;
+    QLineEdit *userInputFields[2];
+    QLabel *userInputLabels[2];
 
 signals:
     void signUpClicked();
     void userLoggedIn();
 
-private:
-    /* Upper area of widget */
-    QWidget *signInBox;
-    QVBoxLayout *signInBoxLayout;
-    QLineEdit *userInputFields[2];
-    QLabel *inputLabels[2];
-    QStringList inputLabelsTexts = { "USERNAME", "PASSWORD" };
-    QPushButton *signInButton;
-
-    /* Lower are of widget */
-    QWidget *signUpBox;
-    QLabel *tipLabel;
-    QPushButton *signUpButton;
-    QPushButton *showPasswordButton;
-
-    /* Client/server response label */
-    QLabel *errorLabel;
-
-    /* API connection components */
-    QNetworkAccessManager *signInManager;
-    QNetworkReply *signInReply;
-
-
-    void layoutCreate();
-    void signUpBoxCreate();
-    void signInBoxCreate();
-    void inputFieldsCreate();
-    void labelsCreate();
-    void buttonsCreate();
-    void updateErrorLabel(QString message, bool error);
-
 private slots:
-    void onSignInButtonClicked();
-    void onSignUpButtonClicked();
+    void onSignInButtonClicked() override;
+    void onSignUpButtonClicked() override;
+
     void signInFinished();
+
     void showPassword();
     void hidePassword();
+
+public:
+    explicit SignInWidget(QWidget *parent = nullptr);
+
+    void signUpBoxCreate() override;
+    void signInBoxCreate() override;
+    void layoutCreate() override;
+    void inputFieldsCreate() override;
+    void labelsCreate() override;
+    void buttonsCreate();
 };
 
 #endif // SIGN_IN_WIDGET_H
