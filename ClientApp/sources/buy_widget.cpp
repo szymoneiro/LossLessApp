@@ -1,25 +1,15 @@
 #include "../headers/buy_widget.h"
 #include "../headers/top_bar_and_stacked_widget.h"
-#include "../headers/main_widget.h"
 #include <QNetworkReply>
 
-BuyWidget::BuyWidget(QWidget *parent) : QWidget(parent)
+BuyWidget::BuyWidget(QWidget *parent) : ScrollWidget(parent)
 {
-    this->setFixedSize(1200, 640);
-    this->setStyleSheet("background-color: #FAFAFA");
-    connectionManager = qobject_cast<TopBarAndStackedWidget*>(parent->parent())->getNetworkManager();
-    accessToken = &qobject_cast<TopBarAndStackedWidget*>(this->parent()->parent())->x_access_token;
     accountBalance = qobject_cast<TopBarAndStackedWidget*>(this->parent()->parent())->accountBalance;
 
-    buttonsCreate();
     scrollAreaCreate();
 
-    /* Create connection between buying widget and sidebar which emit signal to switch between widgets. */
-    MainWidget *parentWidget = qobject_cast<MainWidget*>(this->parent()->parent()->parent());
-    QHBoxLayout *parentLayout = qobject_cast<QHBoxLayout*>(parentWidget->layout());
-    sidebarWidget = qobject_cast<LogoAndSideBarWidget*>(parentLayout->itemAt(0)->widget());
-    connect(sidebarWidget, SIGNAL(buyPageClicked()),
-            this, SLOT(buyButtonClicked()));
+    connect(sideBarWidget, SIGNAL(buyPageClicked()),
+            this, SLOT(onBuyButtonClicked()));
 
     signInWidget = qobject_cast<SignInWidget*>(this->parent()->children()[1]);
     connect(signInWidget, SIGNAL(userLoggedIn()),
@@ -35,66 +25,28 @@ BuyWidget::BuyWidget(QWidget *parent) : QWidget(parent)
 
 void BuyWidget::scrollAreaCreate()
 {
-    scrollArea = new QScrollArea(this);
-    scrollWidget = new QWidget(scrollArea);
-    scrollLayout = new QVBoxLayout(scrollWidget);
-
-    scrollLayout->setSpacing(8);
-    scrollLayout->setContentsMargins(12, 61, 24, 24);
-
-    scrollWidget->setLayout(scrollLayout);
-    scrollWidget->setStyleSheet("background-color: #4C3099");
+    scrollAreaWidgetLayout->setSpacing(8);
+    scrollAreaWidgetLayout->setContentsMargins(12, 61, 24, 24);
 
     const int label_width = 101;
     const int label_height = 28;
     const int label_spacing = 256;
     for (int i = 0; i < 3; ++i) {
-        scrollAreaLabels[i] = new QLabel(scrollLabelsText[i], scrollWidget);
+        scrollAreaLabels[i] = new QLabel(scrollLabelsText[i], scrollAreaWidget);
         scrollAreaLabels[i]->setStyleSheet("background-color: none;"
                                            "font-size: 24px;"
                                            "color: #FFFFFF;"
-                                           "font-weight: bold");
+                                           "font-weight: bold;"
+                                           "border: 0px");
         scrollAreaLabels[i]->setFont(QFont("Lato"));
         scrollAreaLabels[i]->setGeometry(140 + i * (label_spacing + label_width),
                                          17,
-                                         label_width, label_height);
+                                         label_width,
+                                         label_height);
         scrollAreaLabels[i]->setAlignment(Qt::AlignCenter);
     }
 
-    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setWidget(scrollWidget);
     scrollArea->setGeometry(22, 81, 1155, 511);
-    scrollArea->setStyleSheet("border-radius: 10px;"
-                              "border: 3px solid #000000");
-}
-
-void BuyWidget::buttonsCreate()
-{
-    const int button_width = 150;
-    const int button_height = 46;
-    const int spacing = 16;
-
-    QStringList buttonsColours = {
-        "00FFA3;",
-        "C8C8C8;",
-        "C8C8C8;"
-    };
-
-    for (int i = 0; i < 3; ++i) {
-        tabButtons[i] = new QPushButton(buttonsNames[i], this);
-        tabButtons[i]->setStyleSheet("background-color: #" + buttonsColours[i] +
-                                     "border-radius: 10px;"
-                                     "border: 3px solid #000000;"
-                                     "font-weight: bold;"
-                                     "font-size: 14px");
-        tabButtons[i]->setGeometry(46 + i * (button_width + spacing),
-                                   48,
-                                   button_width,
-                                   button_height);
-        tabButtons[i]->setFont(QFont("Lato"));
-    }
 }
 
 void BuyWidget::obtainServerRecords(recordType type)
@@ -202,7 +154,7 @@ void BuyWidget::obtainServerRecords(recordType type)
                     this, &BuyWidget::buyStock);
         }
 
-        scrollLayout->addWidget(currentRecord);
+        scrollAreaWidgetLayout->addWidget(currentRecord);
 
         currentRecordLayout->addWidget(recordName);
         currentRecordLayout->addWidget(recordPrice);
@@ -360,47 +312,22 @@ void BuyWidget::buyRecord(recordType type)
     accountBalance->setText(QString::number(balanceWithoutDolarSign.toDouble() - transactionCost, 'f', 2) + " $");
 }
 
-void BuyWidget::setActiveButton(recordType type)
+void BuyWidget::onCryptocurrenciesTabClick()
 {
-    QStringList colours;
-    if (type == recordType::cryptoRecord) {
-        colours = {
-            "00FFA3;",
-            "C8C8C8;",
-            "C8C8C8;"
-        };
-    }
-    else if (type == recordType::currencyRecord) {
-        colours = {
-            "C8C8C8;",
-            "00FFA3;",
-            "C8C8C8;"
-        };
-    }
-    else {
-        colours = {
-            "C8C8C8;",
-            "C8C8C8;",
-            "00FFA3;"
-        };
-    }
-    for (int i = 0; i < 3; ++i) {
-        tabButtons[i]->setStyleSheet("background-color: #" + colours[i] +
-                                     "border-radius: 10px;"
-                                     "border: 3px solid #000000;"
-                                     "font-weight: bold;"
-                                     "font-size: 14px");
-    }
+    ScrollWidget::onCryptocurrenciesTabClick();
+    obtainServerRecords(recordType::cryptoRecord);
 }
 
-void BuyWidget::clearScrollLayout()
+void BuyWidget::onCurrenciesTabClick()
 {
-    QLayoutItem *child;
-    QVBoxLayout *layoutToClear = this->scrollLayout;
-    while ((child = layoutToClear->takeAt(0)) != 0) {
-        delete child->widget();
-        delete child;
-    }
+    ScrollWidget::onCurrenciesTabClick();
+    obtainServerRecords(recordType::currencyRecord);
+}
+
+void BuyWidget::onStocksTabClick()
+{
+    ScrollWidget::onStocksTabClick();
+    obtainServerRecords(recordType::stockRecord);
 }
 
 void BuyWidget::buyCrypto()
@@ -418,32 +345,11 @@ void BuyWidget::buyStock()
     buyRecord(recordType::stockRecord);
 }
 
-void BuyWidget::buyButtonClicked()
+void BuyWidget::onBuyButtonClicked()
 {
     clearScrollLayout();
     setActiveButton(recordType::cryptoRecord);
     obtainServerRecords(recordType::cryptoRecord);
-}
-
-void BuyWidget::onCryptocurrenciesTabClick()
-{
-    clearScrollLayout();
-    setActiveButton(recordType::cryptoRecord);
-    obtainServerRecords(recordType::cryptoRecord);
-}
-
-void BuyWidget::onCurrenciesTabClick()
-{
-    clearScrollLayout();
-    setActiveButton(recordType::currencyRecord);
-    obtainServerRecords(recordType::currencyRecord);
-}
-
-void BuyWidget::onStocksTabClick()
-{
-    clearScrollLayout();
-    setActiveButton(recordType::stockRecord);
-    obtainServerRecords(recordType::stockRecord);
 }
 
 void BuyWidget::setUserBalance()

@@ -4,23 +4,12 @@
 #include "../headers/main_widget.h"
 #include <QNetworkReply>
 
-HomePageWidget::HomePageWidget(QWidget *parent) : QWidget(parent)
+HomePageWidget::HomePageWidget(QWidget *parent) : ScrollWidget(parent)
 {
-    this->setFixedSize(1200, 640);
-    this->setStyleSheet("background-color: #FAFAFA");
-    connectionManager = qobject_cast<TopBarAndStackedWidget*>(parent->parent())->getNetworkManager();
-    accessToken = &qobject_cast<TopBarAndStackedWidget*>(this->parent()->parent())->x_access_token;
-
-    buttonsCreate();
     scrollAreaCreate();
 
-    /* Create connection between selling widget and sidebar which emit signal to switch between widgets. */
-    MainWidget *parentWidget = qobject_cast<MainWidget*>(this->parent()->parent()->parent());
-    QHBoxLayout *parentLayout = qobject_cast<QHBoxLayout*>(parentWidget->layout());
-    sidebarWidget = qobject_cast<LogoAndSideBarWidget*>(parentLayout->itemAt(0)->widget());
-
-    connect(sidebarWidget, SIGNAL(homePageClicked()),
-            this, SLOT(homePage()));
+    connect(sideBarWidget, SIGNAL(homePageClicked()),
+            this, SLOT(onCryptocurrenciesTabClick()));
 
     connect(tabButtons[0], &QPushButton::clicked,
             this, &HomePageWidget::onCryptocurrenciesTabClick);
@@ -30,45 +19,16 @@ HomePageWidget::HomePageWidget(QWidget *parent) : QWidget(parent)
             this, &HomePageWidget::onStocksTabClick);
 }
 
-void HomePageWidget::buttonsCreate()
-{
-    const int button_width = 150;
-    const int button_height = 46;
-    const int spacing = 16;
-    QStringList colours = {
-        "00FFA3;",
-        "C8C8C8;",
-        "C8C8C8;"
-    };
-
-    for (int i = 0; i < 3; ++i) {
-        tabButtons[i] = new QPushButton(buttonsNames[i], this);
-        tabButtons[i]->setStyleSheet("background-color: #" + colours[i] +
-                                     "border-radius: 10px;"
-                                     "border: 3px solid #000000;"
-                                     "font-weight: bold;"
-                                     "font-size: 14px");
-        tabButtons[i]->setGeometry(28 + i * (button_width + spacing),
-                                   48,
-                                   button_width,
-                                   button_height);
-        tabButtons[i]->setFont(QFont("Lato"));
-    }
-}
-
 void HomePageWidget::scrollAreaCreate()
 {
-    scrollArea = new QScrollArea(this);
-    scrollWidget = new QWidget(scrollArea);
-    scrollLayout = new QVBoxLayout(scrollWidget);
+    scrollAreaWidgetLayout->setSpacing(12);
+    scrollAreaWidgetLayout->setContentsMargins(72, 45, 136, 44);
 
-    scrollLayout->setSpacing(12);
-    scrollLayout->setContentsMargins(72, 45, 136, 44);
+    scrollAreaWidget->setLayout(scrollAreaWidgetLayout);
+    scrollAreaWidget->setStyleSheet("background-color: #4C3099;"
+                                    "border: 0px");
 
-    scrollWidget->setLayout(scrollLayout);
-    scrollWidget->setStyleSheet("background-color: #4C3099");
-
-    QGraphicsDropShadowEffect *scrollAreaShadow = new QGraphicsDropShadowEffect(scrollWidget);
+    QGraphicsDropShadowEffect *scrollAreaShadow = new QGraphicsDropShadowEffect(scrollAreaWidget);
     scrollAreaShadow->setBlurRadius(2);
     scrollAreaShadow->setColor(QColor(0, 0, 0, 64));
     scrollAreaShadow->setOffset(2, 5);
@@ -78,24 +38,20 @@ void HomePageWidget::scrollAreaCreate()
     const int label_height = 30;
     const int label_spacing = 32;
     for (int i = 0; i < 4; ++i) {
-        scrollAreaLabels[i] = new QLabel(scrollLabelsText[i], scrollWidget);
+        scrollAreaLabels[i] = new QLabel(scrollLabelsText[i], scrollAreaWidget);
         scrollAreaLabels[i]->setStyleSheet("background-color: none;"
                                            "font-size: 14px;"
-                                           "color: #FFFFFF");
+                                           "color: #FFFFFF;"
+                                           "border: 0px");
         scrollAreaLabels[i]->setFont(QFont("Lato"));
         scrollAreaLabels[i]->setGeometry(100 + i * (label_spacing + label_width),
                                          8,
-                                         label_width, label_height);
+                                         label_width,
+                                         label_height);
         scrollAreaLabels[i]->setAlignment(Qt::AlignCenter);
     }
 
-    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setWidget(scrollWidget);
     scrollArea->setGeometry(20, 81, 1160, 511);
-    scrollArea->setStyleSheet("border-radius: 10px;"
-                              "border: 3px solid #000000");
 }
 
 void HomePageWidget::obtainUserRecords(recordType type)
@@ -273,7 +229,7 @@ void HomePageWidget::obtainUserRecords(recordType type)
         recordCurrentPrice->setFont(QFont("Lato"));
         recordCurrentPrice->setAlignment(Qt::AlignCenter);
 
-        scrollLayout->addWidget(currentRecord);
+        scrollAreaWidgetLayout->addWidget(currentRecord);
 
         currentRecordLayout->addWidget(recordName);
         currentRecordLayout->addWidget(recordQuantity);
@@ -283,49 +239,6 @@ void HomePageWidget::obtainUserRecords(recordType type)
     recordsReply->deleteLater();
 }
 
-void HomePageWidget::clearScrollLayout()
-{
-    QLayoutItem *child;
-    QVBoxLayout *layoutToClear = this->scrollLayout;
-    while ((child = layoutToClear->takeAt(0)) != 0) {
-        delete child->widget();
-        delete child;
-    }
-}
-
-void HomePageWidget::setActiveButton(recordType type)
-{
-    QStringList colours;
-    if (type == recordType::cryptoRecord) {
-        colours = {
-            "00FFA3;",
-            "C8C8C8;",
-            "C8C8C8;"
-        };
-    }
-    else if (type == recordType::currencyRecord) {
-        colours = {
-            "C8C8C8;",
-            "00FFA3;",
-            "C8C8C8;"
-        };
-    }
-    else {
-        colours = {
-            "C8C8C8;",
-            "C8C8C8;",
-            "00FFA3;"
-        };
-    }
-    for (int i = 0; i < 3; ++i) {
-        tabButtons[i]->setStyleSheet("background-color: #" + colours[i] +
-                                     "border-radius: 10px;"
-                                     "border: 3px solid #000000;"
-                                     "font-weight: bold;"
-                                     "font-size: 14px");
-    }
-}
-
 void HomePageWidget::onUserLogin()
 {
     obtainUserRecords(recordType::cryptoRecord);
@@ -333,31 +246,21 @@ void HomePageWidget::onUserLogin()
 
 void HomePageWidget::onCryptocurrenciesTabClick()
 {
-    clearScrollLayout();
+    ScrollWidget::onCryptocurrenciesTabClick();
     scrollAreaLabels[0]->setText("Cryptocurrency name");
-    setActiveButton(recordType::cryptoRecord);
     obtainUserRecords(recordType::cryptoRecord);
 }
 
 void HomePageWidget::onCurrenciesTabClick()
 {
-    clearScrollLayout();
+    ScrollWidget::onCurrenciesTabClick();
     scrollAreaLabels[0]->setText("Currency name");
-    setActiveButton(recordType::currencyRecord);
     obtainUserRecords(recordType::currencyRecord);
 }
 
 void HomePageWidget::onStocksTabClick()
 {
-    clearScrollLayout();
+    ScrollWidget::onStocksTabClick();
     scrollAreaLabels[0]->setText("Stock name");
-    setActiveButton(recordType::stockRecord);
     obtainUserRecords(recordType::stockRecord);
-}
-
-void HomePageWidget::homePage()
-{
-    clearScrollLayout();
-    setActiveButton(recordType::cryptoRecord);
-    obtainUserRecords(recordType::cryptoRecord);
 }

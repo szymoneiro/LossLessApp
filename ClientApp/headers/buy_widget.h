@@ -1,64 +1,40 @@
 #ifndef BUY_WIDGET_H
 #define BUY_WIDGET_H
 
-#include <QtWidgets>
-#include <QNetworkAccessManager>
-#include "../headers/logo_and_side_bar_widget.h"
-#include "../headers/sign_in_widget.h"
+#include "scroll_widget.h"
+#include "sign_in_widget.h"
 
-class BuyWidget : public QWidget
+class BuyWidget : public ScrollWidget
 {
     Q_OBJECT
-public:
-    explicit BuyWidget(QWidget *parent = nullptr);
 private:
-    enum class recordType {
-        cryptoRecord = 1,
-        currencyRecord = 2,
-        stockRecord = 3
-    };
-
-    QScrollArea *scrollArea;
-    QWidget *scrollWidget;
-    QVBoxLayout *scrollLayout;
-
     QLabel *scrollAreaLabels[3];
     QStringList scrollLabelsText = {
         "Name",
         "Buy price",
         "Quantity"
     };
-    QPushButton *tabButtons[3];
-    QStringList buttonsNames = {
-        "Cryptocurrencies",
-        "Currencies",
-        "Stocks"
-    };
-
-    LogoAndSideBarWidget *sidebarWidget;
 
     SignInWidget *signInWidget;
     QLabel *accountBalance;
 
-    QNetworkAccessManager *connectionManager;
-    QString *accessToken;
-
-    void scrollAreaCreate();
-    void buttonsCreate();
-    void obtainServerRecords(recordType type);
-    void buyRecord(recordType type);
-    void setActiveButton(recordType type);
-    void clearScrollLayout();
-
 private slots:
-    void buyCrypto();
-    void buyCurrency();
-    void buyStock();
-    void buyButtonClicked();
     void onCryptocurrenciesTabClick();
     void onCurrenciesTabClick();
     void onStocksTabClick();
+
+    void buyCrypto();
+    void buyCurrency();
+    void buyStock();
+
+    void onBuyButtonClicked();
     void setUserBalance();
+
+public:
+    explicit BuyWidget(QWidget *parent = nullptr);
+    void scrollAreaCreate();
+    void obtainServerRecords(recordType type);
+    void buyRecord(recordType type);
 };
 
 #endif // BUY_WIDGET_H

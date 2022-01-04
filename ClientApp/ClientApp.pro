@@ -10,6 +10,7 @@ SOURCES += \
     sources/home_page_widget.cpp \
     sources/logo_and_side_bar_widget.cpp \
     sources/main_widget.cpp \
+    sources/scroll_widget.cpp \
     sources/sell_widget.cpp \
     sources/sign_in_widget.cpp \
     sources/sign_up_widget.cpp \
@@ -20,6 +21,7 @@ HEADERS += \
     headers/home_page_widget.h \
     headers/logo_and_side_bar_widget.h \
     headers/main_widget.h \
+    headers/scroll_widget.h \
     headers/sell_widget.h \
     headers/sign_in_widget.h \
     headers/sign_up_widget.h \
