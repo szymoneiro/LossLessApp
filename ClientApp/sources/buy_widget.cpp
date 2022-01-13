@@ -238,7 +238,7 @@ void BuyWidget::buyRecord(recordType type)
 
     QUrlQuery query;
     query.addQueryItem("record_id", QString::number(recordId));
-    query.addQueryItem("buy_price", QString::number(buyPrice, 'g', 12));
+    query.addQueryItem("price", QString::number(buyPrice, 'g', 12));
     query.addQueryItem("quantity", QString::number(buyQuantity, 'g', 12));
 
     QByteArray postData;

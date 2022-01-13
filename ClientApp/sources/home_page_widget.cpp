@@ -219,7 +219,7 @@ void HomePageWidget::obtainUserRecords(recordType type)
         recordQuantity->setFont(QFont("Lato"));
         recordQuantity->setAlignment(Qt::AlignCenter);
 
-        QLabel *recordBuyPrice = new QLabel(QString::number(j.next()["buy_price"].toDouble(), 'g', 12), currentRecord);
+        QLabel *recordBuyPrice = new QLabel(QString::number(j.next()["priceg"].toDouble(), 'g', 12), currentRecord);
         recordBuyPrice->setStyleSheet(recordValueStylesheet);
         recordBuyPrice->setFont(QFont("Lato"));
         recordBuyPrice->setAlignment(Qt::AlignCenter);

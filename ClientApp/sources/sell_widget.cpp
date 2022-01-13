@@ -324,7 +324,7 @@ void SellWidget::sellRecord(recordType type)
     QString recordPriceText = recordPrice->text();
     QUrlQuery query;
     query.addQueryItem("record_id", QString::number(recordId));
-    query.addQueryItem("buy_price", recordPriceText);
+    query.addQueryItem("price", recordPriceText);
     query.addQueryItem("quantity", recordQuantityText);
 
     QByteArray postData;
