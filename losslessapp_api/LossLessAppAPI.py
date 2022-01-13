@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_restful import Api, Resource, reqparse, abort, fields, marshal_with
 from flask_sqlalchemy import SQLAlchemy
 import uuid
+from sqlalchemy.orm import backref
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import datetime
@@ -37,6 +38,7 @@ class Users(db.Model):
     password = db.Column(db.String(80))
     balance = db.Column(db.Float)
     admin = db.Column(db.Boolean)
+    record = db.relationship('Record', backref="users", lazy=True)
 
     def __repr__(self):
         return f"Public_id: {Users.public_id}, username: {Users.username}, balance: {Users.balance}, is admin: {Users.admin}"
