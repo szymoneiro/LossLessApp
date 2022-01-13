@@ -78,12 +78,12 @@ class Record(db.Model):
     record_type = db.Column(db.Enum(RecordsType), nullable=False)
     record_id = db.Column(db.Integer, nullable=False)
     quantity = db.Column(db.Float, nullable=False)
-    buy_price = db.Column(db.Float, nullable=False)
-    buy_date = db.Column(db.String(50), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    date = db.Column(db.String(50), nullable=False)
 
     def __repr__(self):
         return f"Public_id: {Record.public_id}, record_type: {Record.record_type}, record_id: {Record.id}, \
-            quantity: {Record.quantity}, price: {Record.buy_price}, date: {Record.buy_date}"
+            quantity: {Record.quantity}, price: {Record.price}, date: {Record.date}"
 
 db.create_all()
 def token_required(f):
@@ -127,10 +127,10 @@ model_patch_args = reqparse.RequestParser()
 model_patch_args.add_argument("name", type=str)
 model_patch_args.add_argument("value", type=float)
 
-record_buy_args = reqparse.RequestParser()
-record_buy_args.add_argument("record_id", type=int)
-record_buy_args.add_argument("quantity", type=float)
-record_buy_args.add_argument("buy_price", type=float)
+record_buy_sell_args = reqparse.RequestParser()
+record_buy_sell_args.add_argument("record_id", type=int)
+record_buy_sell_args.add_argument("quantity", type=float)
+record_buy_sell_args.add_argument("price", type=float)
 
 serialize_fields = {
     'id': fields.Integer,
@@ -139,26 +139,6 @@ serialize_fields = {
 }
 
 class SignUp(Resource):
-    @token_required
-    def get(current_user, self):
-        if not current_user:
-            abort(404, message="No user found!")
-        if not current_user.admin:
-            abort(401, message="Access denied!")
-        users = Users.query.all()
-
-        output = []
-        for user in users:
-            single_user = {}
-            single_user['id'] = user.id
-            single_user['public_id'] = user.public_id
-            single_user['username'] = user.username
-            single_user['password'] = user.password
-            single_user['balance'] = user.balance
-            single_user['admin'] = user.admin
-            output.append(single_user)
-        return jsonify(output)
-
     def post(self):
         args = signup_post_args.parse_args()
         if not args or not args['username'] or not args['password'] or not args['balance']:
@@ -263,18 +243,18 @@ class Cryptocurrencies(Resource):
 class BuyCrypto(Resource):
     @token_required
     def post(current_user, self):
-        args = record_buy_args.parse_args()
+        args = record_buy_sell_args.parse_args()
         if not args["record_id"]:
             abort(400, message="Missing crypto id!")
         if not args["quantity"]:
             abort(400, message="Missing quantity!")
-        if not args["buy_price"]:
+        if not args["price"]:
             abort(400, message="Missing buy price!")
 
         if args["quantity"] <= 0:
             abort(406, message="Quanity has to be bigger than 0!")
 
-        if current_user.balance < args["quantity"] * args["buy_price"]:
+        if current_user.balance < args["quantity"] * args["price"]:
             abort(406, message="Insufficient account balance!")
         
         now = datetime.datetime.now()
@@ -283,10 +263,10 @@ class BuyCrypto(Resource):
             record_type = RecordsType.CryptoRecord,
             record_id = args["record_id"],
             quantity  = args["quantity"],
-            buy_price = args["buy_price"],
-            buy_date = now.strftime("%d.%m.%Y %H:%M:%S")
+            price = args["price"],
+            date = now.strftime("%d.%m.%Y %H:%M:%S")
         )
-        current_user.balance = current_user.balance - args["quantity"] * args["buy_price"]
+        current_user.balance = current_user.balance - args["quantity"] * args["price"]
         db.session.add(buyRecord)
         db.session.commit()
         return {"message": "Succesfully bought crypto!"}, 201
@@ -294,13 +274,13 @@ class BuyCrypto(Resource):
 class SellCrypto(Resource):
     @token_required
     def post(current_user, self):
-        args = record_buy_args.parse_args()
+        args = record_buy_sell_args.parse_args()
         if not args["record_id"]:
             abort(400, message="Missing crypto id!")
         if not args["quantity"]:
             abort(400, message="Missing quantity!")
-        if not args["buy_price"]:
-            abort(400, message="Missing buy price!")
+        if not args["price"]:
+            abort(400, message="Missing sell price!")
 
         if args["quantity"] <= 0:
             abort(406, message="Quantity has to be bigger than 0!")
@@ -322,10 +302,10 @@ class SellCrypto(Resource):
             record_type = RecordsType.CryptoRecord,
             record_id = args["record_id"],
             quantity  = -1 * args["quantity"],
-            buy_price = args["buy_price"],
-            buy_date = now.strftime("%d.%m.%Y %H:%M:%S")
+            price = args["price"],
+            date = now.strftime("%d.%m.%Y %H:%M:%S")
         )
-        current_user.balance = current_user.balance + args["quantity"] * args["buy_price"]
+        current_user.balance = current_user.balance + args["quantity"] * args["price"]
         db.session.add(sellRecord)
         db.session.commit()
         return {"message": "Succesfully sold crypto!"}, 201
@@ -342,8 +322,8 @@ class CryptoRecords(Resource):
             single_record["record_type"] = record.record_type.name
             single_record["record_id"] = record.record_id
             single_record["quantity"] = record.quantity
-            single_record["buy_price"] = record.buy_price
-            single_record["buy_date"] = record.buy_date
+            single_record["price"] = record.price
+            single_record["date"] = record.date
             output.append(single_record)
         return jsonify(output)
 
@@ -411,18 +391,18 @@ class Currencies(Resource):
 class BuyCurrency(Resource):
     @token_required
     def post(current_user, self):
-        args = record_buy_args.parse_args()
+        args = record_buy_sell_args.parse_args()
         if not args["record_id"]:
             abort(400, message="Missing currency id!")
         if not args["quantity"]:
             abort(400, message="Missing quantity!")
-        if not args["buy_price"]:
+        if not args["price"]:
             abort(400, message="Missing buy price!")
 
         if args["quantity"] <= 0:
             abort(406, message="Quantity has to be bigger than 0!")
 
-        if current_user.balance < args["quantity"] * args["buy_price"]:
+        if current_user.balance < args["quantity"] * args["price"]:
             abort(406, message="Insufficient account balance!")
         
         now = datetime.datetime.now()
@@ -431,10 +411,10 @@ class BuyCurrency(Resource):
             record_type = RecordsType.CurrencyRecord,
             record_id = args["record_id"],
             quantity  = args["quantity"],
-            buy_price = args["buy_price"],
-            buy_date = now.strftime("%d.%m.%Y %H:%M:%S")
+            price = args["price"],
+            date = now.strftime("%d.%m.%Y %H:%M:%S")
         )
-        current_user.balance = current_user.balance - args["quantity"] * args["buy_price"]
+        current_user.balance = current_user.balance - args["quantity"] * args["price"]
         db.session.add(buyRecord)
         db.session.commit()
         return {"message": "Succesfully bought currency!"}, 201
@@ -442,12 +422,12 @@ class BuyCurrency(Resource):
 class SellCurrency(Resource):
     @token_required
     def post(current_user, self):
-        args = record_buy_args.parse_args()
+        args = record_buy_sell_args.parse_args()
         if not args["record_id"]:
             abort(400, message="Missing currency id!")
         if not args["quantity"]:
             abort(400, message="Missing quantity!")
-        if not args["buy_price"]:
+        if not args["price"]:
             abort(400, message="Missing buy price!")
 
         if args["quantity"] <= 0:
@@ -470,10 +450,10 @@ class SellCurrency(Resource):
             record_type = RecordsType.CurrencyRecord,
             record_id = args["record_id"],
             quantity  = -1 * args["quantity"],
-            buy_price = args["buy_price"],
-            buy_date = now.strftime("%d.%m.%Y %H:%M:%S")
+            price = args["price"],
+            date = now.strftime("%d.%m.%Y %H:%M:%S")
         )
-        current_user.balance = current_user.balance + args["quantity"] * args["buy_price"]
+        current_user.balance = current_user.balance + args["quantity"] * args["price"]
         db.session.add(sellRecord)
         db.session.commit()
         return {"message": "Succesfully sold currency!"}, 201
@@ -490,8 +470,8 @@ class CurrenciesRecords(Resource):
             single_record["record_type"] = record.record_type.name
             single_record["record_id"] = record.record_id
             single_record["quantity"] = record.quantity
-            single_record["buy_price"] = record.buy_price
-            single_record["buy_date"] = record.buy_date
+            single_record["price"] = record.price
+            single_record["date"] = record.date
             output.append(single_record)
         return jsonify(output)
 
@@ -560,18 +540,18 @@ class Stocks(Resource):
 class BuyStock(Resource):
     @token_required
     def post(current_user, self):
-        args = record_buy_args.parse_args()
+        args = record_buy_sell_args.parse_args()
         if not args["record_id"]:
             abort(400, message="Missing stock id!")
         if not args["quantity"]:
             abort(400, message="Missing quantity!")
-        if not args["buy_price"]:
+        if not args["price"]:
             abort(400, message="Missing buy price!")
 
         if args["quantity"] <= 0:
             abort(406, message="Quanity has to be bigger than 0!")
 
-        if current_user.balance < args["quantity"] * args["buy_price"]:
+        if current_user.balance < args["quantity"] * args["price"]:
             abort(406, message="Insufficient account balance!")
         
         now = datetime.datetime.now()
@@ -580,10 +560,10 @@ class BuyStock(Resource):
             record_type = RecordsType.StockRecord,
             record_id = args["record_id"],
             quantity  = args["quantity"],
-            buy_price = args["buy_price"],
-            buy_date = now.strftime("%d.%m.%Y %H:%M:%S")
+            price = args["price"],
+            date = now.strftime("%d.%m.%Y %H:%M:%S")
         )
-        current_user.balance = current_user.balance - args["quantity"] * args["buy_price"]
+        current_user.balance = current_user.balance - args["quantity"] * args["price"]
         db.session.add(buyRecord)
         db.session.commit()
         return {"message": "Succesfully bought stock!"}, 201
@@ -591,12 +571,12 @@ class BuyStock(Resource):
 class SellStock(Resource):
     @token_required
     def post(current_user, self):
-        args = record_buy_args.parse_args()
+        args = record_buy_sell_args.parse_args()
         if not args["record_id"]:
             abort(400, message="Missing stock id!")
         if not args["quantity"]:
             abort(400, message="Missing quantity!")
-        if not args["buy_price"]:
+        if not args["price"]:
             abort(400, message="Missing buy price!")
 
         if args["quantity"] <= 0:
@@ -619,10 +599,10 @@ class SellStock(Resource):
             record_type = RecordsType.StockRecord,
             record_id = args["record_id"],
             quantity  = -1 * args["quantity"],
-            buy_price = args["buy_price"],
-            buy_date = now.strftime("%d.%m.%Y %H:%M:%S")
+            price = args["price"],
+            date = now.strftime("%d.%m.%Y %H:%M:%S")
         )
-        current_user.balance = current_user.balance + args["quantity"] * args["buy_price"]
+        current_user.balance = current_user.balance + args["quantity"] * args["price"]
         db.session.add(sellRecord)
         db.session.commit()
         return {"message": "Succesfully sold stock!"}, 201
@@ -639,8 +619,8 @@ class StockRecords(Resource):
             single_record["record_type"] = record.record_type.name
             single_record["record_id"] = record.record_id
             single_record["quantity"] = record.quantity
-            single_record["buy_price"] = record.buy_price
-            single_record["buy_date"] = record.buy_date
+            single_record["price"] = record.price
+            single_record["date"] = record.date
             output.append(single_record)
         return jsonify(output)
 
