@@ -1,8 +1,0 @@
-# CoinMarketCap API
-## SCRIPTS
-1st and 2nd script are more useful for single use and understanding how API works. At <em>"production"</em> they are no longer useful, but <em>"production code"</em> is based on these two.
-* <em>[get_top_100_cryptocurrencies_IDs.py](get_top_100_cryptocurrencies_IDs.py)</em> - Saves top 100 cryptocurrencies based on ther cmc_rank. <br>
-<b><ins>IMPORTANT NOTE</b></ins>: In fact this script should be runned at the first, because based on its ranking file, later on I created a database containing exactly those 100 cryptocurrencies. When you will run this script, it's more than likely to have different ranking than in [this example file](../example_files/top_100_cryptocurrencies_IDs.txt). It is just a nature of cryptocurrencies which tend to change quickly at every possible way. I've decided to stay at same 100 cryptocurrencies once I've runned this, because I planned to add history of cryptocurrencies which is currently in <b>TO-DO</b> phase.
-* <em>[get_prices_from_top_100_cryptos.py](get_prices_from_top_100_cryptos.py)</em> - Based on [ranking file](../example_files/top_100_cryptocurrencies_IDs.txt) we create [another file](../example_files/top_100_values.txt) which contain detailed information about our 100 top ranked cryptos, especially their <b>values</b>.
-* <em>[convert_top_100_records_to_ID_file.py](convert_top_100_records_to_ID_file.py)</em> - Convert [file holding top 100 ranked records](../example_files/top_100_cryptocurrencies_IDs.txt) into [ID file](../IDs.txt).
-* <em>[append_records_to_db.py](append_records_to_db.py)</em> - Append 100 cryptocurrencies with mock values inside database based on [this file](../example_files/top_100_cryptocurrencies_IDs.txt).

@@ -1,13 +1,15 @@
 # Keys
-/cryptocurrencies/coinmarketapi_key.txt
-/cryptocurrencies/freecurrencyapi_key.txt
-/losslessapp_api/secret_key.txt
-/losslessapp_api/API_update_key.txt
-/losslessapp_api/freecurrencyapi_key.txt
-/losslessapp_api/stock_key.txt
+/API/coinmarketapi_key.txt
+/API/freecurrencyapi_key.txt
+/API/secret_key.txt
+/API/freecurrencyapi_key.txt
+/API/twelvedata_key.txt
+
+# Crypto keys
+/API/IDS.txt
 
 # Databases
-/losslessapp_api/cryptocurrencies.db
+/API/losslessapp.db
 
 # ClientApp Builds
 build-ClientApp*
@@ -85,4 +87,3 @@ Thumbs.db
 # --------
 *.dll
 *.exe
-
