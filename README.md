@@ -34,7 +34,7 @@ If you find any problems with running this project - [contact me](#about-me).
 # Project requirements
 
 ## API:
-
+Save below libraries as file, for example "requirements.txt"
 ```
 aniso8601==9.0.1
 certifi==2021.10.8
@@ -58,7 +58,10 @@ SQLAlchemy==1.4.27
 urllib3==1.26.7
 Werkzeug==2.0.2
 ```
-
+then run in console:
+```
+pip install -r requirements.txt
+```
 ## Client:
 
 Qt version **5.15**
