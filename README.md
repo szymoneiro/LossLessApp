@@ -4,7 +4,7 @@
 
 # Table of Contents
 - [Project setup](#project-setup)
-- [Project requirements](#project-requirements)
+- [Project dependencies](#project-dependencies)
 - [Current status](#current-status)
 - [About me](#about-me)
 
@@ -12,7 +12,7 @@
 
 ## API
 
-1. Generate secret key - [secret](https://docs.python.org/3/library/secrets.html) library might come in handy - 32 bytes (256 bits) should be enought, the longer you generate, more brute-force attack proof it will get. 
+1. Generate secret key - [secret](https://docs.python.org/3/library/secrets.html) library might come in handy - 32 bytes (256 bits) should be enough, the longer you generate, more brute-force attack proof it will get. 
 Save it inside [API](API) directory as *secret_key.txt*
 2. Make sure to install all [requirements](#project-requirements).
 3. Run [LossLessAppAPI.py](API/LossLessAppAPI.py) to create database file and keep API running.
@@ -31,7 +31,7 @@ Download repository. Open project using [Qt Creator](https://www.qt.io/product/d
 Project has been created on Windows, but should compile fine on Linux and macOS.\
 If you find any problems with running this project - [contact me](#about-me).
 
-# Project requirements
+# Project dependencies
 
 ## API:
 Save below libraries as file, for example "requirements.txt"
